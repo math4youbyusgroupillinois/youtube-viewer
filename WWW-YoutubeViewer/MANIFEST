@@ -9,6 +9,7 @@ share/gtk-youtube-viewer-icons/user.png
 share/gtk-youtube-viewer-icons/spinner.gif
 share/gtk-youtube-viewer-icons/feed_icon.png
 share/gtk-youtube-viewer-icons/default_thumb.jpg
+share/gtk-youtube-viewer-icons/donate.png
 share/gtk-youtube-viewer-icons/gtk-youtube-viewer.png
 share/icons/gtk-youtube-viewer.png
 bin/youtube-viewer

@@ -3,6 +3,9 @@ package WWW::YoutubeViewer;
 use utf8;
 use strict;
 
+use lib '../';  # devel only
+
+use parent 'WWW::YoutubeViewer::Search';
 use autouse 'XML::Fast'   => qw{ xml2hash($;%) };
 use autouse 'URI::Escape' => qw{ uri_escape uri_escape_utf8 uri_unescape };
 
@@ -86,7 +89,8 @@ my %valid_options = (
     # No input value alowed
     categories_url    => {valid => q[], default => 'http://gdata.youtube.com/schemas/2007/categories.cat'},
     educategories_url => {valid => q[], default => 'http://gdata.youtube.com/schemas/2007/educategories.cat'},
-    feeds_url         => {valid => q[], default => 'http://gdata.youtube.com/feeds/api'},
+    #feeds_url         => {valid => q[], default => 'http://gdata.youtube.com/feeds/api'},
+    feeds_url         => {valid => q[], default => 'https://www.googleapis.com/youtube/v3/'},
     video_info_url    => {valid => q[], default => 'http://www.youtube.com/get_video_info'},
     oauth_url         => {valid => q[], default => 'https://accounts.google.com/o/oauth2/'},
     video_info_args   => {valid => q[], default => '?video_id=%s&el=detailpage&ps=default&eurl=&gl=US&hl=en'},
@@ -260,9 +264,10 @@ Returns a string with the default gdata arguments.
 sub default_gdata_arguments {
     my ($self) = @_;
     $self->list_to_gdata_arguments(
-                                   'max-results' => $self->get_results,
-                                   'start-index' => $self->get_start_index,
-                                   'v'           => $self->get_v,
+                                   #'max-results' => $self->get_results,
+                                   #'start-index' => $self->get_start_index,
+                                   'key'         => $self->get_key,
+                                   #'v'           => $self->get_v,
                                   );
 }
 
@@ -310,9 +315,9 @@ sub get_accounts_oauth_url {
                                   response_type => 'code',
                                   client_id     => $self->get_client_id() // return,
                                   redirect_uri  => $self->get_redirect_uri() // return,
-                                  scope         => 'https://gdata.youtube.com',
+                                  scope         => 'https://www.googleapis.com/auth/youtube',
+                                  access_type   => 'offline',
                                  );
-
     return $url;
 }
 
@@ -400,12 +405,16 @@ sub _get_lwp_header {
 
     my %lwp_header;
     if (defined $self->get_key) {
-        $lwp_header{'X-GData-Key'} = $self->prepare_key;
+        #$lwp_header{'X-GData-Key'} = $self->prepare_key;
     }
+
+
 
     if (defined $self->get_access_token) {
         $lwp_header{'Authorization'} = $self->prepare_access_token;
     }
+
+    #$lwp_header{'X-JavaScript-User-Agent'} = 'Google APIs Explorer';
 
     return %lwp_header;
 }
@@ -420,9 +429,7 @@ sub lwp_get {
     my ($self, $url) = @_;
 
     $self->{lwp} // $self->set_lwp_useragent();
-
-    my %lwp_header = $self->_get_lwp_header();
-    my $response = $self->{lwp}->get($url, %lwp_header);
+    my $response = $self->{lwp}->get($url, $self->_get_lwp_header);
 
     if ($response->is_success) {
         return $response->decoded_content;
@@ -430,7 +437,7 @@ sub lwp_get {
     else {
         my $status = $response->status_line;
 
-        if ($status eq '401 Token invalid' and defined($self->get_refresh_token)) {
+        if ($status eq '401 Unauthorized' and defined($self->get_refresh_token)) {
             if (defined(my $json = $self->oauth_refresh_token())) {
                 if ($json =~ m{^\h*"access_token"\h*:\h*"(.{10,}?)"}m) {
 
@@ -442,7 +449,7 @@ sub lwp_get {
                     if ($new_resp->is_success) {
                         return $new_resp->decoded_content;
                     }
-                    elsif ($new_resp->status_line() eq '401 Token invalid') {
+                    elsif ($new_resp->status_line() eq '401 Unauthorized') {
                         $self->set_refresh_token();    # refresh token was invalid
                         $self->set_access_token();     # access token is also broken
                         warn "[!] Can't refresh the access token! Logging out...\n";
@@ -463,7 +470,7 @@ sub lwp_get {
                 $self->set_access_token();
             }
         }
-
+        print $response->decoded_content;
         warn '[' . $response->status_line . "] Error occured on URL: $url\n";
     }
 
@@ -1034,7 +1041,7 @@ sub _concat_args {
     }
 
     $url =~ s/[&?]+$//;
-    $url .= ($url =~ /&/ ? '&' : '?') . $args;
+    $url .= ($url =~ /[&?]/ ? '&' : '?') . $args;
     return $url;
 }
 

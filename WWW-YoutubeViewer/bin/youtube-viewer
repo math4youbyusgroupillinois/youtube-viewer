@@ -102,7 +102,7 @@ See http://dev.perl.org/licenses/ for more information.
 
 use 5.016;
 
-#use lib qw(../lib);    # devel only
+use lib qw(../lib);    # devel only
 #use warnings;          # debug only
 
 use File::Spec::Functions qw(catdir catfile curdir path rel2abs tmpdir);
@@ -116,7 +116,8 @@ require Term::UI;
 my $term = Term::ReadLine->new("$appname $version");
 
 # Developer key
-my $key = 'eTj9NtCyOsGMliTTwz-T85muGT-ARAwVREslfB_giHP3X339Jkpn5Xf71pQXY96xWtFY1oFHt530ct5uZZJk5YTghbNm2IrwZ4';
+#my $key = 'eTj9NtCyOsGMliTTwz-T85muGT-ARAwVREslfB_giHP3X339Jkpn5Xf71pQXY96xWtFY1oFHt530ct5uZZJk5YTghbNm2IrwZ4';
+my $key = 'aXalQYmzI8gPkMSLyMhpApfMAiU2b23Qz2nE3mq';
 
 # Options (key=>value) goes here
 my %opt = ();
@@ -372,8 +373,8 @@ my $yv_obj = WWW::YoutubeViewer->new(
                                     );
 
 {
-    my $client_id     = '991455593101.apps.googleusercontent.com';
-    my $client_secret = 'YcxxWCCbBwIr-IhUDCanrp41';
+    my $client_id     = '923751928481.apps.googleusercontent.com';
+    my $client_secret = 'twr0nZewhZ-wBSVW1apRauq1';
     my $redirect_uri  = 'urn:ietf:wg:oauth:2.0:oob';
 
     $yv_obj->set_client_id($client_id);
@@ -407,6 +408,11 @@ unless (qr/^--?(?>N|noconfig)\z/ ~~ \@ARGV) {
     my (%temp_hash) = %CONFIG;
     apply_configuration(\%temp_hash);
 }
+
+$yv_obj->set_prefer_https(1);
+print $yv_obj->search_videos(qw(google));
+
+exit;
 
 #---------------------- YOUTUBE-VIEWER USAGE ----------------------#
 sub help {
