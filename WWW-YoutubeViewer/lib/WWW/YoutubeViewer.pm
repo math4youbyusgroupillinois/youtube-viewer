@@ -5,7 +5,11 @@ use strict;
 
 use lib '../';  # devel only
 
-use parent 'WWW::YoutubeViewer::Search';
+use parent qw(
+    WWW::YoutubeViewer::Search
+    WWW::YoutubeViewer::ParseJSON
+);
+
 use autouse 'XML::Fast'   => qw{ xml2hash($;%) };
 use autouse 'URI::Escape' => qw{ uri_escape uri_escape_utf8 uri_unescape };
 
@@ -168,7 +172,7 @@ sub set_prefer_https {
     $self->{prefer_https} = $bool;
 
     foreach my $key (grep /_url\z/, keys %valid_options) {
-        next if $key ~~ [qw(oauth_url)];
+        next if $key ~~ [qw(oauth_url feeds_url)];
         my $url = $valid_options{$key}{default};
         $self->{prefer_https} ? ($url =~ s{^http://}{https://}) : ($url =~ s{^https://}{http://});
         $self->{$key} = $url;
@@ -437,7 +441,7 @@ sub lwp_get {
     else {
         my $status = $response->status_line;
 
-        if ($status eq '401 Unauthorized' and defined($self->get_refresh_token)) {
+        if ($status =~ /^401 / and defined($self->get_refresh_token)) {
             if (defined(my $json = $self->oauth_refresh_token())) {
                 if ($json =~ m{^\h*"access_token"\h*:\h*"(.{10,}?)"}m) {
 
@@ -449,7 +453,7 @@ sub lwp_get {
                     if ($new_resp->is_success) {
                         return $new_resp->decoded_content;
                     }
-                    elsif ($new_resp->status_line() eq '401 Unauthorized') {
+                    elsif ($new_resp->status_line() =~ /^401 /) {
                         $self->set_refresh_token();    # refresh token was invalid
                         $self->set_access_token();     # access token is also broken
                         warn "[!] Can't refresh the access token! Logging out...\n";

@@ -18,7 +18,9 @@ t/pod.t
 t/pod-coverage.t
 t/00-load.t
 lib/WWW/YoutubeViewer.pm
+lib/WWW/YoutubeViewer/ParseJSON.pm
 lib/WWW/YoutubeViewer/Itags.pm
+lib/WWW/YoutubeViewer/Search.pm
 lib/WWW/YoutubeViewer/ParseXML.pm
 lib/WWW/YoutubeViewer/RegularExpressions.pm
 lib/WWW/YoutubeViewer/Utils.pm

@@ -410,7 +410,7 @@ unless (qr/^--?(?>N|noconfig)\z/ ~~ \@ARGV) {
 }
 
 $yv_obj->set_prefer_https(1);
-print $yv_obj->search_videos(qw(google));
+print $yv_obj->search_videos(qw(xxswampxx));
 
 exit;
 
