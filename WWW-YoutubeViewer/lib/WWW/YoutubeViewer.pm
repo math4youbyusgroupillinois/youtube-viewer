@@ -3,12 +3,12 @@ package WWW::YoutubeViewer;
 use utf8;
 use strict;
 
-use lib '../';  # devel only
+use lib '../';    # devel only
 
 use parent qw(
-    WWW::YoutubeViewer::Search
-    WWW::YoutubeViewer::ParseJSON
-);
+  WWW::YoutubeViewer::Search
+  WWW::YoutubeViewer::ParseJSON
+  );
 
 use autouse 'XML::Fast'   => qw{ xml2hash($;%) };
 use autouse 'URI::Escape' => qw{ uri_escape uri_escape_utf8 uri_unescape };
@@ -54,30 +54,40 @@ our @feed_methods = qw(newsubscriptionvideos recommendations favorites watch_his
 my %valid_options = (
 
     # Main options
-    v           => {valid => q[],                                        default => 2},
-    page        => {valid => [qr/^(?!0+\z)\d+\z/],                       default => 1},
-    results     => {valid => [1 .. 50],                                  default => 10},
-    hd          => {valid => [qw(true)],                                 default => undef},
-    http_proxy  => {valid => [qr{^http://}],                             default => undef},
-    caption     => {valid => [qw(true false)],                           default => undef},
-    duration    => {valid => [qw(short medium long)],                    default => undef},
-    category    => {valid => \@categories_IDs,                           default => undef},
-    region      => {valid => \@region_IDs,                               default => undef},
-    orderby     => {valid => [qw(relevance published viewCount rating)], default => undef},
-    time        => {valid => [qw(today this_week this_month all_time)],  default => undef},
-    safe_search => {valid => [qw(strict moderate none)],                 default => undef},
+    page       => {valid => [qr/^(?!0+\z)\d+\z/], default => 1},
+    http_proxy => {valid => [qr{^http://}],       default => undef},
+
+    maxResults      => {valid => [1 .. 50],                             default => 3},
+    topicId         => {valid => [qr/^./],                              default => undef},
+    regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => undef},
+    order           => {valid => [qw(date rating relevance viewCount)], default => undef},
+    publishedAfter  => {valid => [qr/^\d+/],                            default => undef},
+    publishedBefore => {valid => [qr/^\d+/],                            default => undef},
+    channelId       => {valid => [qr/^[-\w]{2,}\z/],                    default => undef},
+
+    # Video only options
+    videoCaption    => {valid => [qw(closedCaption none)],     default => undef},
+    videoDefinition => {valid => [qw(high standard)],          default => undef},
+    videoCategoryId => {valid => \@categories_IDs,             default => undef},
+    videoDimension  => {valid => [qw(2d 3d)],                  default => undef},
+    videoDuration   => {valid => [qw(short medium long)],      default => undef},
+    videoEmbeddable => {valid => [qw(true)],                   default => undef},
+    videoLicense    => {valid => [qw(creativeCommon youtube)], default => undef},
+    videoSyndicated => {valid => [qw(true)],                   default => undef},
+
+    #category    => {valid => \@categories_IDs,                           default => undef},
+    #region      => {valid => \@region_IDs,                               default => undef},
+    #order       => {valid => [qw(date rating relevance viewCount)],      default => undef},
+    #time        => {valid => [qw(today this_week this_month all_time)],  default => undef},
+    #safe_search => {valid => [qw(strict moderate none)],                 default => undef},
 
     # Others
-    debug        => {valid => [0 .. 2],               default => 0},
-    lwp_timeout  => {valid => [qr/^\d+$/],            default => 30},
-    access_token => {valid => [qr/^.{5}/],            default => undef},
-    key          => {valid => [qr/^.{5}/],            default => undef},
-    author       => {valid => [qr{^[\-\w.]{2,64}\z}], default => undef},
-    app_version  => {valid => [qr/^v?\d/],            default => $VERSION},
-    app_name     => {valid => [qr/^./],               default => 'Youtube Viewer'},
-    config_dir   => {valid => [qr/^./],               default => q{.}},
-
-    categories_language => {valid => [qr/^[a-z]+-\w/], default => 'en-US'},
+    debug       => {valid => [0 .. 2],     default => 0},
+    lwp_timeout => {valid => [qr/^\d+\z/], default => 1},
+    key         => {valid => [qr/^.{5}/],  default => undef},
+    app_version => {valid => [qr/^v?\d/],  default => $VERSION},
+    app_name    => {valid => [qr/^./],     default => 'Youtube Viewer'},
+    config_dir  => {valid => [qr/^./],     default => q{.}},
 
     # Booleans
     lwp_keep_alive => {valid => [1, 0], default => 1},
@@ -88,17 +98,19 @@ my %valid_options = (
     client_id     => {valid => [qr/^.{5}/], default => undef},
     client_secret => {valid => [qr/^.{5}/], default => undef},
     redirect_uri  => {valid => [qr/^.{5}/], default => undef},
+    access_token  => {valid => [qr/^.{5}/], default => undef},
     refresh_token => {valid => [qr/^.{5}/], default => undef},
 
     # No input value alowed
     categories_url    => {valid => q[], default => 'http://gdata.youtube.com/schemas/2007/categories.cat'},
     educategories_url => {valid => q[], default => 'http://gdata.youtube.com/schemas/2007/educategories.cat'},
+
     #feeds_url         => {valid => q[], default => 'http://gdata.youtube.com/feeds/api'},
-    feeds_url         => {valid => q[], default => 'https://www.googleapis.com/youtube/v3/'},
-    video_info_url    => {valid => q[], default => 'http://www.youtube.com/get_video_info'},
-    oauth_url         => {valid => q[], default => 'https://accounts.google.com/o/oauth2/'},
-    video_info_args   => {valid => q[], default => '?video_id=%s&el=detailpage&ps=default&eurl=&gl=US&hl=en'},
-    www_content_type  => {valid => q[], default => 'application/x-www-form-urlencoded'},
+    feeds_url        => {valid => q[], default => 'https://www.googleapis.com/youtube/v3/'},
+    video_info_url   => {valid => q[], default => 'http://www.youtube.com/get_video_info'},
+    oauth_url        => {valid => q[], default => 'https://accounts.google.com/o/oauth2/'},
+    video_info_args  => {valid => q[], default => '?video_id=%s&el=detailpage&ps=default&eurl=&gl=US&hl=en'},
+    www_content_type => {valid => q[], default => 'application/x-www-form-urlencoded'},
 
     # LWP user agent
     lwp_agent => {valid => [qr/^.{5}/], default => 'Mozilla/5.0 (X11; U; Linux i686; en-US) Chrome/10.0.648.45'},
@@ -149,10 +161,10 @@ sub new {
         }
     }
 
-    $self->{start_index} =
-         delete($opts{start_index})
-      || $self->get_start_index()
-      || 1;
+    # $self->{start_index} =
+    #      delete($opts{start_index})
+    #   || $self->get_start_index()
+    #   || 1;
 
     foreach my $invalid_key (keys %opts) {
         warn "Invalid key: '${invalid_key}'";
@@ -268,11 +280,13 @@ Returns a string with the default gdata arguments.
 sub default_gdata_arguments {
     my ($self) = @_;
     $self->list_to_gdata_arguments(
-                                   #'max-results' => $self->get_results,
-                                   #'start-index' => $self->get_start_index,
-                                   'key'         => $self->get_key,
-                                   #'v'           => $self->get_v,
-                                  );
+
+        #'max-results' => $self->get_results,
+        #'start-index' => $self->get_start_index,
+        'key' => $self->get_key,
+
+        #'v'           => $self->get_v,
+    );
 }
 
 =head2 set_lwp_useragent()
@@ -295,6 +309,7 @@ sub set_lwp_useragent {
                                          agent         => $self->get_lwp_agent,
                                         );
 
+    $self->{lwp}->ssl_opts(Timeout => 1);
     push @{$self->{lwp}->requests_redirectable}, 'POST';
     $self->{lwp}->proxy('http', $self->get_http_proxy) if (defined($self->get_http_proxy));
     return $self->{lwp};
@@ -409,10 +424,9 @@ sub _get_lwp_header {
 
     my %lwp_header;
     if (defined $self->get_key) {
+
         #$lwp_header{'X-GData-Key'} = $self->prepare_key;
     }
-
-
 
     if (defined $self->get_access_token) {
         $lwp_header{'Authorization'} = $self->prepare_access_token;
@@ -1269,18 +1283,29 @@ sub full_gdata_arguments {
     my ($self, %opts) = @_;
 
     my %hash = (
-                'q' => $opts{keywords} // q{},
-                'max-results' => $self->get_results,
-                'category'    => $self->get_category,
-                'time'        => $self->get_time,
-                'orderby'     => $self->get_orderby,
-                'start-index' => $self->get_start_index,
-                'safeSearch'  => $self->get_safe_search,
-                'hd'          => $self->get_hd,
-                'caption'     => $self->get_caption,
-                'duration'    => $self->get_duration,
-                'author'      => $self->get_author,
-                'v'           => $self->get_v,
+        'q' => $opts{keywords} // q{},
+
+        #'max-results' => $self->get_results,
+        maxResults   => $self->get_results,
+        pageToken    => $opts{page_token},
+        regionCode   => $self->get_region,
+        videoCaption => $self->get_video_caption,
+
+        #type         => $opts{type},
+        #'category'    => $self->get_category,
+        # 'time'        => $self->get_time,
+        #'orderby'     => $self->get_orderby,
+        order => $self->get_order,
+
+        #'start-index' => $self->get_start_index,
+        #'safeSearch'  => $self->get_safe_search,
+        #'hd'          => $self->get_hd,
+        #'caption'     => $self->get_caption,
+        #'duration'    => $self->get_duration,
+        channelId => $self->get_channel_id,
+
+        #'author'      => $self->get_author,
+        #'v'           => $self->get_v,
                );
 
     if (ref $opts{ignore} eq 'ARRAY') {
@@ -1533,18 +1558,14 @@ sub get_video_info {
     }
 
     # Create {next,previous}_page subroutines
-    foreach my $pair (['next_page' => 1], ['previous_page' => 0]) {
+    foreach my $name ('next_page', 'previous_page') {
 
-        *{__PACKAGE__ . '::' . $pair->[0]} = sub {
-            my ($self, $url, %opts) = @_;
-
-            $url = $self->_next_or_back($pair->[1], $url);
-            return {
-                    url     => $url,
-                    results => $self->get_content($url, %opts),
-                   };
+        *{__PACKAGE__ . '::' . $name} = sub {
+            my ($self, $url, $token) = @_;
+            my $res = $self->_get_results($self->_concat_args($url, pageToken => $token));
+            $res->{url} = $url;
+            return $res;
         };
-
     }
 
     # Create subroutines that require authentication

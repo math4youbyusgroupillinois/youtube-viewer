@@ -24,37 +24,105 @@ our $VERSION = '0.01';
 
 =cut
 
-sub _get_search_url{
-    my($self) = @_;
-    return $self->prepare_url($self->get_feeds_url() . 'search');
+sub _make_search_url {
+    my ($self, %opts) = @_;
+
+    return $self->_concat_args(
+        $self->prepare_url($self->get_feeds_url() . 'search'),
+
+        part            => 'snippet',
+        topicId         => $self->get_topicId,
+        regionCode      => $self->get_regionCode,
+        maxResults      => $self->get_maxResults,
+        order           => $self->get_order,
+        publishedAfter  => $self->get_publishedAfter,
+        publishedBefore => $self->get_publishedBefore,
+
+        (
+         $opts{type} =~ /\bvideo\b/
+         ? (
+            videoCaption    => $self->get_videoCaption,
+            videoCategoryId => $self->get_videoCategoryId,
+            videoDefinition => $self->get_videoDefinition,
+            videoDimension  => $self->get_videoDimension,
+            videoDuration   => $self->get_videoDuration,
+            videoEmbeddable => $self->get_videoEmbeddable,
+            videoLicense    => $self->get_videoLicense,
+            videoSyndicated => $self->get_videoSyndicated,
+           )
+         : ()
+        ),
+
+        %opts,
+                              );
+
 }
 
-sub _search{
-    my($self, $type, $keywords) = @_;
+sub _get_results {
+    my ($self, $url) = @_;
 
-    my $q = $self->escape_string("@{$keywords}");
-
-    my $url = $self->_concat_args(
-    $self->_get_search_url(),
-        part=>'snippet',
-        q => $q,
-        type => $type,
-    );
-
-    return $self->lwp_get($url);
+    return
+      scalar {
+              url     => $url,
+              results => $self->parse_json_string($self->lwp_get($url)),
+             };
 }
 
-=head2 search_videos(@keywords)
+sub _search {
+    my ($self, $type, $keywords, $args) = @_;
 
-Search and return the video results.
+    my $url = $self->_make_search_url(
+                                      type => $type,
+                                      (q => defined($keywords) ? $self->escape_string("@{$keywords}") : ()),
+                                      (ref $args eq 'HASH' ? %{$args} : ()),
+                                     );
+
+    return $self->_get_results($url);
+}
+
+=head2 search_videos($keywords;$args)
+
+Search and return the found video results.
 
 =cut
 
-sub search_videos{
+sub search_videos {
     my ($self, @keywords) = @_;
-    return $self->_search('video', \@keywords);
+    return $self->_search('video', @keywords);
 }
 
+=head2 search_playlists($keywords;$args)
+
+Search and return the found playlists.
+
+=cut
+
+sub search_playlists {
+    my ($self, @keywords) = @_;
+    return $self->_search('playlist', @keywords);
+}
+
+=head2 search_channels($keywords;$args)
+
+Search and return the found channels.
+
+=cut
+
+sub search_channels {
+    my ($self, @keywords) = @_;
+    return $self->_search('channel', @keywords);
+}
+
+=head2 search_all($keywords;$args)
+
+Search and return the results.
+
+=cut
+
+sub search_all {
+    my ($self, @keywords) = @_;
+    return $self->_search('video,channel,playlist', @keywords);
+}
 
 =head1 AUTHOR
 
