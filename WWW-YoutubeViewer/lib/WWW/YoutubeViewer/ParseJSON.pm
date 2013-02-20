@@ -32,7 +32,8 @@ Parse a JSON string and return a HASH ref.
 
 sub parse_json_string {
     $_[1] // return {};
-    return decode_json($_[1]);
+    my $hash = eval { decode_json($_[1]) };
+    return $@ ? do { warn "[JSON::XS]: $@\n"; {} } : $hash;
 }
 
 =head1 AUTHOR

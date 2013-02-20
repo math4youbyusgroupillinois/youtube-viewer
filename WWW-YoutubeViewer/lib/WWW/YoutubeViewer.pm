@@ -4,10 +4,18 @@ use utf8;
 use strict;
 
 use lib '../';    # devel only
+use warnings;
 
 use parent qw(
   WWW::YoutubeViewer::Search
+  WWW::YoutubeViewer::Videos
+  WWW::YoutubeViewer::Channels
+  WWW::YoutubeViewer::Playlists
   WWW::YoutubeViewer::ParseJSON
+  WWW::YoutubeViewer::Subscriptions
+  WWW::YoutubeViewer::PlaylistItems
+  WWW::YoutubeViewer::VideoCategories
+  WWW::YoutubeViewer::GuideCategories
   );
 
 use autouse 'XML::Fast'   => qw{ xml2hash($;%) };
@@ -54,10 +62,11 @@ our @feed_methods = qw(newsubscriptionvideos recommendations favorites watch_his
 my %valid_options = (
 
     # Main options
-    page       => {valid => [qr/^(?!0+\z)\d+\z/], default => 1},
-    http_proxy => {valid => [qr{^http://}],       default => undef},
+    page       => {valid => [qr/^(?!0+\z)\d+\z/],       default => 1},
+    http_proxy => {valid => [qr{^http://}],             default => undef},
+    hl         => {valid => [qr/^[a-z]{2}-[A-Z]{2}\z/], default => undef},
 
-    maxResults      => {valid => [1 .. 50],                             default => 3},
+    maxResults      => {valid => [1 .. 50],                             default => 2},
     topicId         => {valid => [qr/^./],                              default => undef},
     regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => undef},
     order           => {valid => [qw(date rating relevance viewCount)], default => undef},
@@ -259,16 +268,15 @@ sub escape_string {
     return $escaped;
 }
 
-=head2 list_to_gdata_arguments(%options)
+=head2 list_to_gdata_arguments(\%options)
 
 Returns a valid string of arguments, with defined values.
 
 =cut
 
 sub list_to_gdata_arguments {
-    my ($self, %opts) = @_;
-
-    return join(q{&} => map "$_=$opts{$_}", grep defined $opts{$_}, keys %opts);
+    my ($self, $opts) = @_;
+    return join(q{&} => map "$_=$opts->{$_}", grep defined $opts->{$_}, keys %{$opts});
 }
 
 =head2 default_gdata_arguments()
@@ -278,15 +286,17 @@ Returns a string with the default gdata arguments.
 =cut
 
 sub default_gdata_arguments {
-    my ($self) = @_;
-    $self->list_to_gdata_arguments(
+    my ($self, $args) = @_;
 
-        #'max-results' => $self->get_results,
-        #'start-index' => $self->get_start_index,
-        'key' => $self->get_key,
+    my %defaults = (
+                    key        => $self->get_key,
+                    part       => 'snippet',
+                    maxResults => $self->get_maxResults,
+                   );
 
-        #'v'           => $self->get_v,
-    );
+    delete @defaults{keys %{$args}};    # delete already specified pairs (if any)
+
+    $self->list_to_gdata_arguments(\%defaults);
 }
 
 =head2 set_lwp_useragent()
@@ -811,6 +821,16 @@ sub get_content {
     return $xml_fast ? $self->_xml2hash($hash, %opts) : $self->_xml2hash_pp($hash, %opts);
 }
 
+sub _get_results {
+    my ($self, $url) = @_;
+
+    return
+      scalar {
+              url     => $url,
+              results => $self->parse_json_string($self->lwp_get($url)),
+             };
+}
+
 sub _url_doesnt_contain_arguments {
     my ($self, $url) = @_;
     return 1 if $url =~ m{^https?+://[\w-]++(?>\.[\w-]++)++(?>/[\w-]++)*+/?+$};
@@ -825,11 +845,11 @@ C<default_arguments()> to it, and returns it.
 =cut
 
 sub prepare_url {
-    my ($self, $url) = @_;
+    my ($self, $url, $args) = @_;
 
     # If the URL doesn't contain any arguments, set defaults
     if ($self->_url_doesnt_contain_arguments($url)) {
-        $url .= '?' . $self->default_gdata_arguments();
+        $url .= '?' . $self->default_gdata_arguments($args);
     }
     else {
         warn "Invalid url: $url";
@@ -838,11 +858,10 @@ sub prepare_url {
     return $url;
 }
 
-sub _make_feed_url_with_args {
-    my ($self, $suburl, @args) = @_;
-
-    my $url = $self->prepare_url($self->get_feeds_url() . $suburl);
-    return $self->_concat_args($url, @args);
+sub _make_feed_url {
+    my ($self, $path, %args) = @_;
+    my $url = $self->prepare_url($self->get_feeds_url() . $path, \%args);
+    return $self->_concat_args($url, \%args);
 }
 
 =head2 get_videos_from_category($cat_id)
@@ -864,7 +883,7 @@ sub get_videos_from_category {
                };
     }
 
-    my $url = $self->_make_feed_url_with_args('/videos', ('category' => $cat_id));
+    my $url = $self->_make_feed_url('/videos', ('category' => $cat_id));
 
     return {
             url     => $url,
@@ -884,7 +903,7 @@ sub get_courses_from_category {
 
     # http://gdata.youtube.com/feeds/api/edu/courses?category=CAT_ID
 
-    my $url = $self->_make_feed_url_with_args('/edu/courses', ('category' => $cat_id));
+    my $url = $self->_make_feed_url('/edu/courses', ('category' => $cat_id));
 
     return {
             url     => $url,
@@ -904,7 +923,7 @@ sub get_video_lectures_from_course {
 
     # http://gdata.youtube.com/feeds/api/edu/lectures?course=COURSE_ID
 
-    my $url = $self->_make_feed_url_with_args('/edu/lectures', ('course' => $course_id));
+    my $url = $self->_make_feed_url('/edu/lectures', ('course' => $course_id));
 
     return {
             url     => $url,
@@ -924,7 +943,7 @@ sub get_video_lectures_from_category {
 
     # http://gdata.youtube.com/feeds/api/edu/lectures?category=CAT_ID
 
-    my $url = $self->_make_feed_url_with_args('/edu/lectures', ('category' => $cat_id));
+    my $url = $self->_make_feed_url('/edu/lectures', ('category' => $cat_id));
 
     return {
             url     => $url,
@@ -948,7 +967,7 @@ sub get_movies {
 
     # http://gdata.youtube.com/feeds/api/charts/movies/most_popular
 
-    my $url = $self->_make_feed_url_with_args("/charts/movies/$movie_id");
+    my $url = $self->_make_feed_url("/charts/movies/$movie_id");
 
     return {
             url     => $url,
@@ -1049,10 +1068,10 @@ sub _populate_category_regions {
 }
 
 sub _concat_args {
-    my ($self, $url, @args) = @_;
+    my ($self, $url, $opts) = @_;
 
-    return $url if scalar(@args) == 0;
-    my $args = $self->list_to_gdata_arguments(@args);
+    return $url if keys(%{$opts}) == 0;
+    my $args = $self->list_to_gdata_arguments($opts);
 
     if (not defined($args) or $args eq q{}) {
         return $url;
@@ -1205,7 +1224,7 @@ sub get_channel_suggestions {
         return;
     }
 
-    my $url = $self->_make_feed_url_with_args('/users/default/suggestion', (type => 'channel', inline => 'true'));
+    my $url = $self->_make_feed_url('/users/default/suggestion', (type => 'channel', inline => 'true'));
 
     return {
             url     => $url,
@@ -1243,7 +1262,7 @@ sub search_channels {
     # https://gdata.youtube.com/feeds/api/channels?q=soccer&v=2
 
     my $keywords = $self->escape_string("@keywords");
-    my $url = $self->_make_feed_url_with_args('/channels', ('q' => $keywords));
+    my $url = $self->_make_feed_url('/channels', ('q' => $keywords));
 
     return {
             url     => $url,
@@ -1262,7 +1281,7 @@ sub search_for_playlists {
 
     my $keywords = $self->escape_string("@keywords");
 
-    my $url = $self->_make_feed_url_with_args('/playlists/snippets', ('q' => $keywords));
+    my $url = $self->_make_feed_url('/playlists/snippets', ('q' => $keywords));
 
     return {
             url     => $url,
@@ -1312,7 +1331,7 @@ sub full_gdata_arguments {
         delete @hash{@{$opts{ignore}}};
     }
 
-    return $self->list_to_gdata_arguments(%hash);
+    return $self->list_to_gdata_arguments(\%hash);
 }
 
 =head2 send_rating_to_video($videoID, $rating)
@@ -1900,7 +1919,7 @@ Returns the video_info arguments.
 
 =head1 AUTHOR
 
-Trizen, C<< <trizenx at gmail.com> >>
+Suteu "Trizen" Daniel, C<< <trizenx at gmail.com> >>
 
 =head1 SEE ALSO
 

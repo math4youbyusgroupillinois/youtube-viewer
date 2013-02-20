@@ -1,10 +1,10 @@
-package WWW::YoutubeViewer::Search;
+package WWW::YoutubeViewer::Playlists;
 
 use strict;
 
 =head1 NAME
 
-WWW::YoutubeViewer::Search - Search functions for Youtube API v3
+WWW::YoutubeViewer::Playlists - Youtube playlists handle.
 
 =head1 VERSION
 
@@ -18,100 +18,38 @@ our $VERSION = '0.01';
 
     use WWW::YoutubeViewer;
     my $obj = WWW::YoutubeViewer->new(%opts);
-    $obj->search_videos(@keywords);
+    my $info = $obj->playlist_from_id($playlist_id);
 
 =head1 SUBROUTINES/METHODS
 
 =cut
 
-sub _make_search_url {
+sub _make_playlists_url {
     my ($self, %opts) = @_;
-
-    return $self->_make_feed_url(
-        'search',
-
-        topicId    => $self->get_topicId,
-        regionCode => $self->get_regionCode,
-
-        #maxResults      => $self->get_maxResults,
-        order           => $self->get_order,
-        publishedAfter  => $self->get_publishedAfter,
-        publishedBefore => $self->get_publishedBefore,
-
-        (
-         $opts{type} =~ /\bvideo\b/
-         ? (
-            videoCaption    => $self->get_videoCaption,
-            videoCategoryId => $self->get_videoCategoryId,
-            videoDefinition => $self->get_videoDefinition,
-            videoDimension  => $self->get_videoDimension,
-            videoDuration   => $self->get_videoDuration,
-            videoEmbeddable => $self->get_videoEmbeddable,
-            videoLicense    => $self->get_videoLicense,
-            videoSyndicated => $self->get_videoSyndicated,
-           )
-         : ()
-        ),
-
-        %opts,
-                                );
-
+    return $self->_make_feed_url('playlists', %opts,);
 }
 
-sub _search {
-    my ($self, $type, $keywords, $args) = @_;
+=head2 playlist_from_id($playlist_id)
 
-    my $url = $self->_make_search_url(
-                                      type => $type,
-                                      q    => $self->escape_string("@{$keywords}"),
-                                      (ref $args eq 'HASH' ? %{$args} : ()),
-                                     );
-
-    return $self->_get_results($url);
-}
-
-=head2 search_videos($keywords;$args)
-
-Search and return the found video results.
+Return info for one or more playlists.
+PlaylistIDs can be separated by commas.
 
 =cut
 
-sub search_videos {
-    my $self = shift;
-    return $self->_search('video', @_);
+sub playlist_from_id {
+    my ($self, $id) = @_;
+    return $self->_get_results($self->_make_playlists_url(id => $id));
 }
 
-=head2 search_playlists($keywords;$args)
+=head2 playlists_from_channel_id($channel_id)
 
-Search and return the found playlists.
+Get and return the specified channel's playlists.
 
 =cut
 
-sub search_playlists {
-    my $self = shift;
-    return $self->_search('playlist', @_);
-}
-
-=head2 search_channels($keywords;$args)
-
-Search and return the found channels.
-
-=cut
-
-sub search_channels {
-    my $self = shift;
-    return $self->_search('channel', @_);
-}
-
-=head2 search_all($keywords;$args)
-
-Search and return the results.
-
-=cut
-
-sub search_all {
-    my $self = shift;
-    return $self->_search('video,channel,playlist', @_);
+sub playlists_from_channel_id {
+    my ($self, $id) = @_;
+    return $self->_get_results($self->_make_playlists_url(channelId => $id));
 }
 
 =head1 AUTHOR
@@ -123,7 +61,7 @@ Suteu "Trizen" Daniel, C<< <trizenx at gmail.com> >>
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc WWW::YoutubeViewer::Search
+    perldoc WWW::YoutubeViewer::Playlists
 
 
 =head1 LICENSE AND COPYRIGHT
@@ -169,4 +107,4 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-1;    # End of WWW::YoutubeViewer::Search
+1;    # End of WWW::YoutubeViewer::Playlists

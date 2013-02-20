@@ -1,10 +1,10 @@
-package WWW::YoutubeViewer::Search;
+package WWW::YoutubeViewer::Channels;
 
 use strict;
 
 =head1 NAME
 
-WWW::YoutubeViewer::Search - Search functions for Youtube API v3
+WWW::YoutubeViewer::Channels - Channels interface.
 
 =head1 VERSION
 
@@ -18,100 +18,48 @@ our $VERSION = '0.01';
 
     use WWW::YoutubeViewer;
     my $obj = WWW::YoutubeViewer->new(%opts);
-    $obj->search_videos(@keywords);
+    my $videos = $obj->channels_from_categoryID($category_id);
 
 =head1 SUBROUTINES/METHODS
 
 =cut
 
-sub _make_search_url {
+sub _make_channels_url {
     my ($self, %opts) = @_;
-
-    return $self->_make_feed_url(
-        'search',
-
-        topicId    => $self->get_topicId,
-        regionCode => $self->get_regionCode,
-
-        #maxResults      => $self->get_maxResults,
-        order           => $self->get_order,
-        publishedAfter  => $self->get_publishedAfter,
-        publishedBefore => $self->get_publishedBefore,
-
-        (
-         $opts{type} =~ /\bvideo\b/
-         ? (
-            videoCaption    => $self->get_videoCaption,
-            videoCategoryId => $self->get_videoCategoryId,
-            videoDefinition => $self->get_videoDefinition,
-            videoDimension  => $self->get_videoDimension,
-            videoDuration   => $self->get_videoDuration,
-            videoEmbeddable => $self->get_videoEmbeddable,
-            videoLicense    => $self->get_videoLicense,
-            videoSyndicated => $self->get_videoSyndicated,
-           )
-         : ()
-        ),
-
-        %opts,
-                                );
-
+    return $self->_make_feed_url('channels', %opts,);
 }
 
-sub _search {
-    my ($self, $type, $keywords, $args) = @_;
+=head2 channels_from_categoryID($category_id)
 
-    my $url = $self->_make_search_url(
-                                      type => $type,
-                                      q    => $self->escape_string("@{$keywords}"),
-                                      (ref $args eq 'HASH' ? %{$args} : ()),
-                                     );
-
-    return $self->_get_results($url);
-}
-
-=head2 search_videos($keywords;$args)
-
-Search and return the found video results.
+Return the YouTube channels associated with the specified category.
 
 =cut
 
-sub search_videos {
-    my $self = shift;
-    return $self->_search('video', @_);
+sub channels_from_categoryID {
+    my ($self, $id) = @_;
+    return $self->_get_results($self->_make_channels_url(categoryId => $id));
 }
 
-=head2 search_playlists($keywords;$args)
+=head2 channel_id_info($category_id)
 
-Search and return the found playlists.
+Return information for the comma-separated list of the YouTube channel ID(s).
 
 =cut
 
-sub search_playlists {
-    my $self = shift;
-    return $self->_search('playlist', @_);
+sub channels_id_info {
+    my ($self, $id) = @_;
+    return $self->_get_results($self->_make_channels_url(id => $id));
 }
 
-=head2 search_channels($keywords;$args)
+=head2 channels_my_subscribers()
 
-Search and return the found channels.
+Retrieve a list of channels that subscribed to the authenticated user's channel.
 
 =cut
 
-sub search_channels {
-    my $self = shift;
-    return $self->_search('channel', @_);
-}
-
-=head2 search_all($keywords;$args)
-
-Search and return the results.
-
-=cut
-
-sub search_all {
-    my $self = shift;
-    return $self->_search('video,channel,playlist', @_);
+sub channels_my_subscribers {
+    my ($self) = @_;
+    return $self->_get_results($self->_make_channels_url(mySubscribers => 'true'));
 }
 
 =head1 AUTHOR
@@ -123,7 +71,7 @@ Suteu "Trizen" Daniel, C<< <trizenx at gmail.com> >>
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc WWW::YoutubeViewer::Search
+    perldoc WWW::YoutubeViewer::Channels
 
 
 =head1 LICENSE AND COPYRIGHT
@@ -169,4 +117,4 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-1;    # End of WWW::YoutubeViewer::Search
+1;    # End of WWW::YoutubeViewer::Channels

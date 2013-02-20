@@ -103,8 +103,9 @@ See http://dev.perl.org/licenses/ for more information.
 use 5.016;
 
 use lib qw(../lib);    # devel only
+use warnings;          # debug only
 
-#use warnings;          # debug only
+no warnings 'once';
 
 use File::Spec::Functions qw(catdir catfile curdir path rel2abs tmpdir);
 
@@ -417,8 +418,34 @@ $yv_obj->set_prefer_https(1);
 #my $uri = 'https://www.googleapis.com/youtube/v3/search?key=AIzaSyA2PQakgMYbX3U3imqplLMhpfM8mzEn22Q&maxResults=3&part=snippet&q=google&type=video';
 
 #print $yv_obj->lwp_get($uri);
+use Data::Dump qw(pp);
+#pp $yv_obj->playlist_from_id('ECF763A77A7EE3429D');    # bad
 
-#exit;
+#pp $yv_obj->videos_from_playlistID('ECF763A77A7EE3429D');   # good
+#pp $yv_obj->playlists_from_channel_id('UCBR8-60-B28hp2BmDPdntcQ');  # good (user's playlists)
+
+# ChannelID: UCWf2ZlNsCGDS89VBF_awNvA
+# my channel ID: UCcwUNX2tWntqwqy_SSnkm9g
+
+#pp $yv_obj->search_videos(['xxswampxx']);
+#pp $yv_obj->channels_my_subscribers();
+
+#pp $yv_obj->videos_from_categoryID('20');  # ok (cat info)
+#pp $yv_obj->video_categories('US');    # ok -- video categories
+
+#http://www.youtube.com/watch?v=f6df3s3x3zo
+
+#pp $yv_obj->video_id_info('f6df3s3x3zo');
+pp $yv_obj->video_id_statistics('f6df3s3x3zo');     # works
+
+#pp $yv_obj->subscriptions_from_channelID('UCcwUNX2tWntqwqy_SSnkm9g');   # ok - get video subscriptions for channelID
+
+#pp $yv_obj->playlist_from_id('GCQXV0b21vdGl2ZQ');
+#pp $yv_obj->videos_from_categoryID('GCU2NpZW5jZSAmIEVkdWNhdGlvbg');
+#pp $yv_obj->playlists_from_channel_id('khanacademy');
+#pp $yv_obj->playlist_from_id('GCU2NpZW5jZSAmIEVkdWNhdGlvbg');
+
+exit;
 
 #---------------------- YOUTUBE-VIEWER USAGE ----------------------#
 sub help {
@@ -1658,7 +1685,7 @@ sub general_options {
         when ($_ ~~ ['n', 'next'] and defined $url) {
             if (not $url ~~ $opt{_last_page_urls}) {
                 my $request = $yv_obj->next_page($url, (defined($mode) ? ($mode => 1) : ()));
-                if (exists $request->{results}{items}) {
+                if ($results->{results}{pageInfo}{totalResults}) {
                     $callback->($request, @{$callback_args});
                 }
                 else {
@@ -2699,7 +2726,7 @@ sub print_videos {
 
 =cut
 
-    if (not exists $results->{results}{items}) {
+    if(not $results->{results}{pageInfo}{totalResults}){
         warn_no_results("video");
     }
 
@@ -2842,7 +2869,7 @@ sub print_videos {
                         foreach my $id (@nums) {
                             my $username = $videos->[$id]{author};
                             my $request  = $yv_obj->get_videos_from_username($username);
-                            if (exists $request->{results}{items}) {
+                            if ($results->{results}{pageInfo}{totalResults}) {
                                 __SUB__->($request);
                             }
                             else {
@@ -2859,7 +2886,7 @@ sub print_videos {
                         foreach my $id (@nums) {
                             my $username = $videos->[$id]{author};
                             my $request  = $yv_obj->get_playlists_from_username($username);
-                            if (exists $request->{results}{items}) {
+                            if ($results->{results}{pageInfo}{totalResults}) {
                                 print_playlists($request);
                             }
                             else {
