@@ -1,10 +1,10 @@
-package WWW::YoutubeViewer::Subscriptions;
+package WWW::YoutubeViewer::Authentication;
 
 use strict;
 
 =head1 NAME
 
-WWW::YoutubeViewer::Subscriptions - Subscriptions handler.
+WWW::YoutubeViewer::Authentication - ...
 
 =head1 VERSION
 
@@ -16,28 +16,25 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use WWW::YoutubeViewer;
-    my $obj = WWW::YoutubeViewer->new(%opts);
-    my $videos = $obj->subscriptions_from_channelID($channel_id);
+    use WWW::YoutubeViewer::Authentication;
+    my $obj = WWW::YoutubeViewer::Authentication->new(%opts);
 
 =head1 SUBROUTINES/METHODS
 
 =cut
 
-sub _make_subscriptions_url {
-    my ($self, %opts) = @_;
-    return $self->_make_feed_url('subscriptions', %opts,);
-}
+=head2 oauth_login()
 
-=head2 subscriptions_from_channelID($channel_id)
-
-Get subscriptions for the specified channel ID.
+...
 
 =cut
 
-sub subscriptions_from_channelID {
-    my ($self, $id) = @_;
-    $self->_get_results($self->_make_subscriptions_url(channelId => $id));
+sub oauth_login {
+    my ($self) = @_;
+
+
+
+    return;
 }
 
 =head1 AUTHOR
@@ -49,7 +46,7 @@ Suteu "Trizen" Daniel, C<< <trizenx at gmail.com> >>
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc WWW::YoutubeViewer::Subscriptions
+    perldoc WWW::YoutubeViewer::Authentication
 
 
 =head1 LICENSE AND COPYRIGHT
@@ -95,4 +92,4 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-1;    # End of WWW::YoutubeViewer::Subscriptions
+1;    # End of WWW::YoutubeViewer::Authentication
