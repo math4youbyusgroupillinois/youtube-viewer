@@ -31,34 +31,60 @@ sub _make_guideCategories_url {
         $opts{regionCode} //= $self->get_regionCode;
     }
 
-    return
-      $self->_make_feed_url(
-                            'guideCategories',
-                            hl => $self->get_hl,
-                            %opts,
-                           );
+    $self->_make_feed_url('guideCategories', hl => $self->get_hl, %opts);
 }
 
 =head2 guide_categories(;$region_id)
 
 Return guide categories for a specific region ID.
 
+    items => [
+               {
+                 etag => "...",
+                 id => "GCQmVzdCBvZiBZb3VUdWJl",
+                 kind => "youtube#guideCategory",
+                 snippet => {
+                   channelId => "UCBR8-60-B28hp2BmDPdntcQ",
+                   title => "Best of YouTube"
+                 },
+               },
+                    ...
+               {
+                 etag => "...",
+                 id => "GCU2NpZW5jZSAmIEVkdWNhdGlvbg",
+                 kind => "youtube#guideCategory",
+                 snippet => {
+                   channelId => "UCBR8-60-B28hp2BmDPdntcQ",
+                   title => "Science & Education",
+                 },
+               },
+                    ...
+            ]
+
+=head2 guide_categories_info($category_id)
+
+Return info for a list of comma-separated category IDs.
+
 =cut
 
-sub guide_categories {
-    my ($self, $code) = @_;
-    return $self->_get_results($self->_make_guideCategories_url(regionCode => $code));
-}
+{
+    no strict 'refs';
 
-=head2 guide_category_id_info($category_id)
-
-Return info for a specific category ID.
-
-=cut
-
-sub guide_category_id_info {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_guideCategories_url(id => $id));
+    foreach my $method (
+                        {
+                         key  => 'id',
+                         name => 'guide_categories_info',
+                        },
+                        {
+                         key  => 'regionCode',
+                         name => 'guide_categories',
+                        },
+      ) {
+        *{__PACKAGE__ . '::' . $method->{name}} = sub {
+            my ($self, $id) = @_;
+            return $self->_get_results($self->_make_guideCategories_url($method->{key} => $id // return));
+        };
+    }
 }
 
 =head1 AUTHOR

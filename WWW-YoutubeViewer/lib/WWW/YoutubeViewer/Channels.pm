@@ -64,21 +64,19 @@ For all functions, C<$channels->{results}{items}> contains:
 {
     no strict 'refs';
 
-    foreach
-      my $info (
-        {
-            key => 'categoryId',
-            name => 'channels_from_guide_category',
-        },
-        {
-            key => 'id',
-            name => 'channels_info',
-        },
-      )
-    {
-        *{__PACKAGE__ . '::' . $info->{name}} = sub {
+    foreach my $method (
+                        {
+                         key  => 'categoryId',
+                         name => 'channels_from_guide_category',
+                        },
+                        {
+                         key  => 'id',
+                         name => 'channels_info',
+                        },
+      ) {
+        *{__PACKAGE__ . '::' . $method->{name}} = sub {
             my ($self, $id) = @_;
-            return $self->_get_results($self->_make_channels_url($info->{key} => $id));
+            return $self->_get_results($self->_make_channels_url($method->{key} => $id));
         };
     }
 

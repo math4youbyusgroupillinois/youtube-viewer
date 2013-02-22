@@ -29,6 +29,18 @@ sub _make_subscriptions_url {
     return $self->_make_feed_url('subscriptions', %opts,);
 }
 
+=head2 subscribe_channel($username)
+
+Subscribe to a user's channel.
+
+=cut
+
+sub subscribe_channel {
+    my ($self, $user) = @_;
+
+    # NEEDS WORK!!!
+}
+
 =head2 subscriptions_mine(%args)
 
 Retrieve a feed of the authenticated user's subscriptions.
@@ -63,8 +75,16 @@ Get details for the comma-separated subscriptionID(s).
 
 {
     no strict 'refs';
-    foreach my $method ({key => 'id', name => 'subscriptions_info'},
-                        {key => 'channelId', name => 'subscriptions_from_channelID'},) {
+    foreach my $method (
+                        {
+                         key  => 'id',
+                         name => 'subscriptions_info',
+                        },
+                        {
+                         key  => 'channelId',
+                         name => 'subscriptions_from_channelID',
+                        }
+      ) {
         *{__PACKAGE__ . '::' . $method->{name}} = sub {
             my ($self, $id, %args) = @_;
             return $self->_get_results($self->_make_subscriptions_url($method->{key} => $id, %args));

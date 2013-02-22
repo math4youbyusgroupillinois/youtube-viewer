@@ -93,10 +93,11 @@ Return time (01:20:10) from duration (PT1H20M10S).
 # PT16S      -> 00:16
 
 sub format_duration {
-    my($self, $duration) = @_;
-    if($duration =~ /^PT(?:(?:(\d+)H)?(\d+)M)?(\d+)S\z/){
-        return join(':', map{sprintf '%02d', $_} grep{defined} ($1, $2//0, $3));
-    }else{
+    my ($self, $duration) = @_;
+    if ($duration =~ /^PT(?:(?:(\d+)H)?(\d+)M)?(\d+)S\z/) {
+        return join(':', map { sprintf '%02d', $_ } grep { defined } ($1, $2 // 0, $3));
+    }
+    else {
         return '00:00';
     }
 }

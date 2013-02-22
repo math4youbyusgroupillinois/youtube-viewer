@@ -67,7 +67,7 @@ my %valid_options = (
     hl         => {valid => [qr/^[a-z]{2}-[A-Z]{2}\z/], default => undef},
 
     maxResults      => {valid => [1 .. 50],                             default => 2},
-    regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => 'US'},
+    regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => undef},
     topicId         => {valid => [qr/^./],                              default => undef},
     order           => {valid => [qw(date rating relevance viewCount)], default => undef},
     publishedAfter  => {valid => [qr/^\d+/],                            default => undef},
@@ -213,40 +213,6 @@ sub get_prefer_https {
     return $self->{prefer_https};
 }
 
-=head2 get_start_index_var($page, $results)
-
-Returns the start_index value for the specific variables.
-
-=cut
-
-sub get_start_index_var {
-    my ($self, $page, $results) = @_;
-    return $results * $page - $results + 1;
-}
-
-=head2 get_start_index()
-
-Returns the start_index based on the page number and results.
-
-=cut
-
-sub get_start_index {
-    my ($self) = @_;
-    return $self->get_results() * $self->get_page() - $self->get_results() + 1;
-}
-
-=head2 back_page_is_available($url)
-
-Returns true if a previous page is available.
-
-=cut
-
-sub back_page_is_available {
-    my ($self, $url) = @_;
-    $url =~ /[&?]start-index=(\d+)\b/ or return;
-    return $1 > $self->get_results();
-}
-
 =head2 escape_string($string)
 
 Escapes a string with URI::Escape and returns it.
@@ -289,9 +255,10 @@ sub default_gdata_arguments {
     my ($self, $args) = @_;
 
     my %defaults = (
-                    key        => $self->get_key,
-                    part       => 'snippet',
-                    maxResults => $self->get_maxResults,
+                    key         => $self->get_key,
+                    part        => 'snippet',
+                    prettyPrint => 'false',
+                    maxResults  => $self->get_maxResults,
                    );
 
     delete @defaults{keys %{$args}};    # delete already specified pairs (if any)
@@ -509,22 +476,7 @@ Returns a list of videos from a categoryID.
 sub get_videos_from_category {
     my ($self, $cat_id) = @_;
 
-    # http://gdata.youtube.com/feeds/api/videos?category=Comedy&v=2
-
-    unless ($cat_id ~~ \@categories_IDs) {
-        warn "Invalid cat ID: $cat_id";
-        return {
-                url     => undef,
-                results => [],
-               };
-    }
-
-    my $url = $self->_make_feed_url('/videos', ('category' => $cat_id));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
+    # NEEDS WORK!!!
 }
 
 =head2 get_courses_from_category($cat_id)
@@ -537,14 +489,7 @@ $cat_id can be any valid category ID from the EDU categories.
 sub get_courses_from_category {
     my ($self, $cat_id) = @_;
 
-    # http://gdata.youtube.com/feeds/api/edu/courses?category=CAT_ID
-
-    my $url = $self->_make_feed_url('/edu/courses', ('category' => $cat_id));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url, courses => 1),
-           };
+    # NEEDS WORK!!!
 }
 
 =head2 get_video_lectures_from_course($course_id)
@@ -557,14 +502,7 @@ $course_id can be any valid course ID from the EDU categories.
 sub get_video_lectures_from_course {
     my ($self, $course_id) = @_;
 
-    # http://gdata.youtube.com/feeds/api/edu/lectures?course=COURSE_ID
-
-    my $url = $self->_make_feed_url('/edu/lectures', ('course' => $course_id));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
+    # NEEDS WORK!!!
 }
 
 =head2 get_video_lectures_from_category($cat_id)
@@ -577,14 +515,7 @@ $cat_id can be any valid category ID from the EDU categories.
 sub get_video_lectures_from_category {
     my ($self, $cat_id) = @_;
 
-    # http://gdata.youtube.com/feeds/api/edu/lectures?category=CAT_ID
-
-    my $url = $self->_make_feed_url('/edu/lectures', ('category' => $cat_id));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
+    # NEEDS WORK!!!
 }
 
 =head2 get_movies($movieID)
@@ -614,93 +545,13 @@ sub get_movies {
 =head2 get_video_tops(%opts)
 
 Returns the video tops for a specific feed_id.
-Valid %opts:
-    (feed_id=>'...',cat_id=>'...',region_id=>'...',time_id=>'...')
 
 =cut
 
 sub get_video_tops {
     my ($self, %opts) = @_;
 
-    my $cat_id    = delete($opts{cat_id})    // $self->get_category();
-    my $region_id = delete($opts{region_id}) // $self->get_region();
-    my $time_id   = delete($opts{time_id})   // $self->get_time();
-    my $feed_id   = delete($opts{feed_id});
-
-    foreach my $key (keys %opts) {
-        warn "Invalid hash key: '${key}'";
-    }
-
-    # https://gdata.youtube.com/feeds/api/standardfeeds/top_rated?time=today
-    # https://gdata.youtube.com/feeds/api/standardfeeds/JP/top_rated_Comedy?v=2
-
-    unless ($feed_id ~~ \@feeds_IDs) {
-        warn "Invalid feed ID: $feed_id";
-        return;
-    }
-
-    if (defined($region_id) and defined($cat_id)) {
-
-        unless (defined($self->{_category_regions})) {
-            $self->_populate_category_regions() or do {
-                warn "No category has been found!";
-                return;
-            };
-        }
-
-        unless ($region_id ~~ $self->{_category_regions}{$cat_id}) {
-            if ($self->get_debug) {
-                warn "Invalid region ID: $region_id";
-            }
-            $region_id = 'US' ~~ $self->{_category_regions}{$cat_id} ? 'US' : undef;
-        }
-    }
-    elsif (defined($region_id)) {
-        unless ($region_id ~~ \@region_IDs) {
-            warn "Invalid region ID: $region_id";
-            undef $region_id;
-        }
-    }
-
-    my $url =
-        $self->get_feeds_url()
-      . '/standardfeeds/'
-      . (defined($region_id) ? qq{$region_id/} : q{})
-      . $feed_id
-      . (defined($cat_id) ? qq{_$cat_id} : q{}) . '?'
-      . $self->full_gdata_arguments('ignore' => [qw(q time category)]);
-
-    if ($time_id ~~ $valid_options{time}{valid}) {
-        $url = $self->_concat_args($url, ('time' => $time_id));
-    }
-    elsif (defined($time_id) and $time_id ne q{}) {
-        warn "Invalid time ID: $time_id";
-    }
-
-    if ($cat_id ~~ \@categories_IDs) {
-        $url = $self->_concat_args($url, ('category' => $cat_id));
-    }
-    elsif (defined($cat_id) and $cat_id ne q{}) {
-        warn "Invalid category ID: $cat_id";
-    }
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
-}
-
-sub _populate_category_regions {
-    my ($self) = @_;
-    my $categories = $self->get_categories;
-
-    @categories_IDs = ();
-    foreach my $cat (@{$categories}) {
-        $self->{_category_regions}{$cat->{term}} = $cat->{regions};
-        push @categories_IDs, $cat->{term};
-    }
-
-    return scalar(@categories_IDs);
+    # NEEDS WORK!!!
 }
 
 sub _concat_args {
@@ -716,70 +567,6 @@ sub _concat_args {
     $url =~ s/[&?]+$//;
     $url .= ($url =~ /[&?]/ ? '&' : '?') . $args;
     return $url;
-}
-
-sub _get_categories {
-    my ($self, $url) = @_;
-
-    $url = $self->_concat_args($url, 'hl' => $self->get_categories_language(), 'v' => $self->get_v());
-
-    require File::Spec;
-    my ($file) = $url =~ m{/(\w+\.cat)\b};
-    my $cat_file = File::Spec->catfile($self->get_config_dir(), $file);
-
-    if (not -f $cat_file) {
-        $self->lwp_mirror($url, $cat_file) or return;
-    }
-
-    require WWW::YoutubeViewer::ParseXML;
-    my $hash = WWW::YoutubeViewer::ParseXML::xml2hash(
-        do {
-            open my $fh, '<:encoding(UTF-8)', $cat_file
-              or do { warn "Can't open file '$cat_file' for reading: $!"; return };
-            local $/;
-            <$fh>;
-          }
-    );
-
-    my @categories;
-    foreach my $cat (@{$hash->{'app:categories'}[0]{'atom:category'}}) {
-        next if exists $cat->{'yt:deprecated'};
-        push @categories,
-          scalar {
-                  label   => $cat->{'-label'},
-                  term    => $cat->{'-term'},
-                  regions => (
-                             exists($cat->{'yt:browsable'})
-                               && ref $cat->{'yt:browsable'} eq 'ARRAY' && exists($cat->{'yt:browsable'}[0]{'-regions'})
-                             ? [split(q{ }, $cat->{'yt:browsable'}[0]{'-regions'})]
-                             : []
-                  ),
-                 };
-    }
-
-    return \@categories;
-}
-
-=head2 get_categories()
-
-Returns the YouTube categories.
-
-=cut
-
-sub get_categories {
-    my ($self) = @_;
-    return $self->_get_categories($self->get_categories_url());
-}
-
-=head2 get_educategories()
-
-Returns the EDU YouTube categories.
-
-=cut
-
-sub get_educategories {
-    my ($self) = @_;
-    return $self->_get_categories($self->get_educategories_url());
 }
 
 sub _get_pairs_from_info_data {
@@ -846,85 +633,6 @@ sub get_streaming_urls {
     return grep { (exists $_->{itag} and exists $_->{url} and exists $_->{type}) or exists $_->{has_cc} } @info;
 }
 
-=head2 get_channel_suggestions()
-
-Returns a list of channel suggestions for the current logged user.
-
-=cut
-
-sub get_channel_suggestions {
-    my ($self) = @_;
-
-    if (not defined $self->get_access_token) {
-        warn "\n[!] The method 'get_channel_suggestions' requires authentication!\n";
-        return;
-    }
-
-    my $url = $self->_make_feed_url('/users/default/suggestion', (type => 'channel', inline => 'true'));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url, channel_suggestions => 1),
-           };
-}
-
-=head2 search(@keywords)
-
-Search and return the video results.
-
-=cut
-
-sub search {
-    my ($self, @keywords) = @_;
-
-    my $keywords = $self->escape_string("@keywords");
-    my $url = $self->get_feeds_url() . '/videos?' . $self->full_gdata_arguments('keywords' => $keywords);
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
-}
-
-=head2 search_channels(@keywords)
-
-Search and return the channel results.
-
-=cut
-
-sub search_channels {
-    my ($self, @keywords) = @_;
-
-    # https://gdata.youtube.com/feeds/api/channels?q=soccer&v=2
-
-    my $keywords = $self->escape_string("@keywords");
-    my $url = $self->_make_feed_url('/channels', ('q' => $keywords));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url, channels => 1),
-           };
-}
-
-=head2 search_for_playlists(@keywords)
-
-Search and return the playlist results.
-
-=cut
-
-sub search_for_playlists {
-    my ($self, @keywords) = @_;
-
-    my $keywords = $self->escape_string("@keywords");
-
-    my $url = $self->_make_feed_url('/playlists/snippets', ('q' => $keywords));
-
-    return {
-            url     => $url,
-            results => $self->get_content($url, playlists => 1),
-           };
-}
-
 =head2 full_gdata_arguments(;%opts)
 
 Returns a string with all the GData arguments.
@@ -978,15 +686,8 @@ Send rating to a video. $rating can be either 'like' or 'dislike'.
 
 sub send_rating_to_video {
     my ($self, $code, $rating) = @_;
-    my $uri = $self->get_feeds_url() . "/videos/$code/ratings";
 
-    return $self->_save('POST', $uri, <<"XML_HEADER");
-<?xml version="1.0" encoding="UTF-8"?>
-<entry xmlns="http://www.w3.org/2005/Atom"
-       xmlns:yt="http://gdata.youtube.com/schemas/2007">
-<yt:rating value="$rating"/>
-</entry>
-XML_HEADER
+    # NEEDS WORK!!!
 }
 
 =head2 send_comment_to_video($videoID, $comment)
@@ -998,36 +699,7 @@ Send comment to a video. Returns true on success.
 sub send_comment_to_video {
     my ($self, $code, $comment) = @_;
 
-    my $uri = $self->get_feeds_url() . "/videos/$code/comments";
-
-    return $self->_save('POST', $uri, <<"XML_HEADER");
-<?xml version="1.0" encoding="UTF-8"?>
-<entry xmlns="http://www.w3.org/2005/Atom"
-    xmlns:yt="http://gdata.youtube.com/schemas/2007">
-  <content>$comment</content>
-</entry>
-XML_HEADER
-}
-
-=head2 subscribe_channel($username)
-
-Subscribe to a user's channel.
-
-=cut
-
-sub subscribe_channel {
-    my ($self, $user) = @_;
-    my $uri = $self->get_feeds_url() . '/users/default/subscriptions';
-
-    return $self->_save('POST', $uri, <<"XML_HEADER");
-<?xml version="1.0" encoding="UTF-8"?>
-<entry xmlns="http://www.w3.org/2005/Atom"
-  xmlns:yt="http://gdata.youtube.com/schemas/2007">
-    <category scheme="http://gdata.youtube.com/schemas/2007/subscriptiontypes.cat"
-      term="channel"/>
-    <yt:username>$user</yt:username>
-</entry>
-XML_HEADER
+    # NEEDS WORK!!!
 }
 
 =head2 favorite_video($videoID)
@@ -1038,59 +710,8 @@ Favorite a video. Returns true on success.
 
 sub favorite_video {
     my ($self, $code) = @_;
-    my $uri = $self->get_feeds_url() . '/users/default/favorites';
 
-    return $self->_save('POST', $uri, <<"XML_HEADER");
-<?xml version="1.0" encoding="UTF-8"?>
-<entry xmlns="http://www.w3.org/2005/Atom">
-  <id>$code</id>
-</entry>
-XML_HEADER
-}
-
-sub _request {
-    my ($self, $req) = @_;
-
-    $self->{lwp} // $self->set_lwp_useragent();
-
-    my $res = $self->{lwp}->request($req);
-
-    if ($res->is_success) {
-        return $res->content();
-    }
-    else {
-        warn 'Request error: ' . $res->status_line();
-    }
-
-    return;
-}
-
-sub _prepare_request {
-    my ($self, $req, $length) = @_;
-
-    $req->header('GData-Version' => $self->get_v);
-    $req->header('Content-Length' => $length) if ($length);
-
-    if (defined $self->get_access_token) {
-        $req->header('Authorization' => $self->prepare_access_token);
-    }
-    if (defined $self->get_key) {
-        $req->header('X-GData-Key' => $self->prepare_key);
-    }
-
-    return 1;
-}
-
-sub _save {
-    my ($self, $method, $uri, $content) = @_;
-
-    require HTTP::Request;
-    my $req = HTTP::Request->new($method => $uri);
-    $req->content_type('application/atom+xml; charset=UTF-8');
-    $self->_prepare_request($req, length($content));
-    $req->content($content);
-
-    return $self->_request($req);
+    # NEEDS WORK!!!
 }
 
 =head2 like_video($videoID)
@@ -1101,7 +722,8 @@ Like a video. Returns true on success.
 
 sub like_video {
     my ($self, $code) = @_;
-    return $self->send_rating_to_video($code, 'like');
+
+    # NEEDS WORK!!!
 }
 
 =head2 dislike_video($videoID)
@@ -1112,7 +734,8 @@ Dislike a video. Returns true on success.
 
 sub dislike_video {
     my ($self, $code) = @_;
-    return $self->send_rating_to_video($code, 'dislike');
+
+    # NEEDS WORK!!!
 }
 
 =head2 get_video_comments($videoID)
@@ -1124,29 +747,7 @@ Returns a list of comments for a videoID.
 sub get_video_comments {
     my ($self, $code) = @_;
 
-    my $url =
-      $self->_concat_args(
-                          $self->get_feeds_url() . "/videos/$code/comments",
-                          (
-                           'max-results' => $self->get_results,
-                           'v'           => $self->get_v,
-                           'start-index' => 1,
-                          )
-                         );
-    return {
-            url     => $url,
-            results => $self->get_content($url, comments => 1),
-           };
-}
-
-sub _next_or_back {
-    my ($self, $next, $url) = @_;
-    $url =~ s{[&?]start-index=\K(\d++)\b}{
-        $next
-            ? $1 + $self->get_results()
-            : $1 - $self->get_results();
-    }e;
-    return $url;
+    # NEEDS WORK!!!
 }
 
 =head2 get_disco_videos(\@keywords)
@@ -1164,7 +765,7 @@ sub get_disco_videos {
     my $json = $self->lwp_get($url . $self->escape_string("@{$keywords}"));
 
     if ($json =~ /list=(?<playlist_id>[\w\-]+)/) {
-        my $hash_ref = $self->get_videos_from_playlist($+{playlist_id});
+        my $hash_ref = $self->videos_from_playlistID($+{playlist_id});
         $hash_ref->{playlistID} = $+{playlist_id};
         return $hash_ref;
     }
@@ -1181,12 +782,7 @@ Returns informations for a videoID.
 sub get_video_info {
     my ($self, $id) = @_;
 
-    my $url = $self->_concat_args($self->get_feeds_url() . "/videos/$id", v => $self->get_v);
-
-    return {
-            url     => $url,
-            results => $self->get_content($url),
-           };
+    # NEEDS WORK!!!
 }
 
 # SOUBROUTINE FACTORY
@@ -1217,7 +813,7 @@ sub get_video_info {
 
         *{__PACKAGE__ . '::' . $name} = sub {
             my ($self, $url, $token) = @_;
-            my $res = $self->_get_results($self->_concat_args($url, pageToken => $token));
+            my $res = $self->_get_results($self->_concat_args($url, {pageToken => $token}));
             $res->{url} = $url;
             return $res;
         };

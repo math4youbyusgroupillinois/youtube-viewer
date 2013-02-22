@@ -61,6 +61,9 @@ sub _make_search_url {
 sub _search {
     my ($self, $type, $keywords, $args) = @_;
 
+    $keywords //= [];
+    ref $keywords ne 'ARRAY' && ($keywords = [$keywords]);
+
     my $url = $self->_make_search_url(
                                       type => $type,
                                       q    => $self->escape_string("@{$keywords}"),
@@ -70,7 +73,7 @@ sub _search {
     return $self->_get_results($url);
 }
 
-=head2 search_videos($keywords;$args)
+=head2 search_videos($keywords;\%args)
 
 Search and return the found video results.
 
@@ -81,7 +84,7 @@ sub search_videos {
     return $self->_search('video', @_);
 }
 
-=head2 search_playlists($keywords;$args)
+=head2 search_playlists($keywords;\%args)
 
 Search and return the found playlists.
 
@@ -92,7 +95,7 @@ sub search_playlists {
     return $self->_search('playlist', @_);
 }
 
-=head2 search_channels($keywords;$args)
+=head2 search_channels($keywords;\%args)
 
 Search and return the found channels.
 
@@ -103,7 +106,7 @@ sub search_channels {
     return $self->_search('channel', @_);
 }
 
-=head2 search_all($keywords;$args)
+=head2 search_all($keywords;\%args)
 
 Search and return the results.
 
@@ -112,6 +115,19 @@ Search and return the results.
 sub search_all {
     my $self = shift;
     return $self->_search('video,channel,playlist', @_);
+}
+
+=head2 related_to_videoID($id)
+
+Retrieves a list of videos that are related to the video
+that the parameter value identifies. The parameter value must
+be set to a YouTube video ID.
+
+=cut
+
+sub related_to_videoID {
+    my ($self, $id) = @_;
+    return $self->_search('video', [], {relatedToVideoId => $id});
 }
 
 =head1 AUTHOR

@@ -449,10 +449,23 @@ use Data::Dump qw(pp);
 #pp $yv_obj->channels_statistics('khanacademy');
 #pp $yv_obj->channels_info('GCVGVjaA');
 
+# PlaylistID: AL94UKMTqg-9A5K8SuV1Xsv4eSZJptYgpc
+
+#pp $yv_obj->videos_from_playlistID('AL94UKMTqg-9A5K8SuV1Xsv4eSZJptYgpc');
+#print_videos($yv_obj->get_disco_videos(['eminem']));
+
+#exit;
+
 
 #http://www.youtube.com/watch?v=f6df3s3x3zo
 
-pp $yv_obj->videos_contentDetails('vijg_JwRAL8');
+#pp $yv_obj->videos_contentDetails('vijg_JwRAL8');
+#pp $yv_obj->guide_categories('US');
+
+#pp $yv_obj->channels_from_guide_category('GCQmVzdCBvZiBZb3VUdWJl');
+
+#pp $yv_obj->videos_all_details('f6df3s3x3zo');
+#pp $yv_obj->videos_id_info('f6df3s3x3zo');
 
 #pp $yv_obj->video_id_info('f6df3s3x3zo');
 #pp $yv_obj->video_id_statistics('f6df3s3x3zo');     # works
@@ -468,7 +481,7 @@ pp $yv_obj->videos_contentDetails('vijg_JwRAL8');
 #pp $yv_obj->playlists_from_channel_id('khanacademy');
 #pp $yv_obj->playlist_from_id('GCU2NpZW5jZSAmIEVkdWNhdGlvbg');
 
-exit;
+#exit;
 
 #---------------------- YOUTUBE-VIEWER USAGE ----------------------#
 sub help {

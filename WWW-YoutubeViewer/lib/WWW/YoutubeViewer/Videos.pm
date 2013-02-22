@@ -29,19 +29,6 @@ sub _make_videos_url {
     return $self->_make_feed_url('videos', %opts,);
 }
 
-=head2 videos_id_info($video_ID)
-
-Get info about a videoID, such as: channelId,
-title, description, tags, and categoryId.
-
-=cut
-
-sub videos_id_info {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_videos_url(id => $id));
-}
-
-
 {
     no strict 'refs';
     foreach my $part (qw(id contentDetails player statistics status topicDetails)) {
@@ -50,6 +37,29 @@ sub videos_id_info {
             return $self->_get_results($self->_make_videos_url(id => $id, part => $part));
         };
     }
+}
+
+=head2 videos_details($id, $part)
+
+Get info about a videoID, such as: channelId, title, description,
+tags, and categoryId.
+
+Available values for I<part> are: I<id>, I<snippet>, I<contentDetails>
+I<player>, I<statistics>, I<status> and I<topicDetails>.
+
+C<$part> string can contain more values, comma-separated.
+
+Example:
+
+    part => 'snippet,contentDetails,statistics'
+
+When C<$part> is C<undef>, it defaults to I<snippet>.
+
+=cut
+
+sub videos_details {
+    my ($self, $id, $part) = @_;
+    return $self->_get_results($self->_make_videos_url(id => $id, part => $part // 'snippet'));
 }
 
 =head2 Return details
