@@ -440,25 +440,19 @@ use Data::Dump qw(pp);
 # guide category ID: GCVGVjaA
 # title => "Tech"
 
-pp $yv_obj->channels_from_guide_category('GCVGVjaA');
+#pp $yv_obj->channels_from_guide_category('GCVGVjaA');
 
-=channel info
+#pp $yv_obj->channels_info('UCwiIs5V6-zX8xaYgwhRhsHQ');
+#my $channelID = 'UCwiIs5V6-zX8xaYgwhRhsHQ';
+#pp $yv_obj->channels_contentDetails($channelID);
+#pp $yv_obj->channels_statistics($channelID);
+#pp $yv_obj->channels_statistics('khanacademy');
+#pp $yv_obj->channels_info('GCVGVjaA');
 
-  id => "....",
-  kind => "youtube#channel",
-        snippet => {
-          description => "...",
-          publishedAt => "2010-06-24T23:15:37.000Z",
-          thumbnails => {
-            default => { url => "..." },
-            high    => { url => "..." },
-            medium  => { url => "..." },
-          },
-          title => "....",
-
-=cut
 
 #http://www.youtube.com/watch?v=f6df3s3x3zo
+
+pp $yv_obj->videos_contentDetails('vijg_JwRAL8');
 
 #pp $yv_obj->video_id_info('f6df3s3x3zo');
 #pp $yv_obj->video_id_statistics('f6df3s3x3zo');     # works

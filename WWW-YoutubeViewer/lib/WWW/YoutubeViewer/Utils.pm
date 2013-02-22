@@ -82,21 +82,23 @@ sub format_time {
       : join q{:}, map { sprintf '%02d', $_ } $sec / 60 % 60, $sec % 60;
 }
 
-=head2 basic_json_parser($json_string)
+=head2 format_duration($duration)
 
-Parse and get key/value pairs from a basic JSON string.
+Return time (01:20:10) from duration (PT1H20M10S).
 
 =cut
 
-sub basic_json_parser {
-    my ($self, $json) = @_;
+# PT5M3S     -> 05:03
+# PT1H20M10S -> 01:20:10
+# PT16S      -> 00:16
 
-    my %pairs;
-    while ($json =~ /^\h*"(.*?)"\h*:\h*(?>"(.*?)"|(\d+))\h*,?\h*$/mg) {
-        $pairs{$1} = $+;
+sub format_duration {
+    my($self, $duration) = @_;
+    if($duration =~ /^PT(?:(?:(\d+)H)?(\d+)M)?(\d+)S\z/){
+        return join(':', map{sprintf '%02d', $_} grep{defined} ($1, $2//0, $3));
+    }else{
+        return '00:00';
     }
-
-    return \%pairs;
 }
 
 =head2 format_date($date)

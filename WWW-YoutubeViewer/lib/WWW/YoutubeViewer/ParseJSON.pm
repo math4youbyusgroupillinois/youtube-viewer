@@ -1,7 +1,7 @@
 package WWW::YoutubeViewer::ParseJSON;
 
 use strict;
-use autouse 'JSON::XS' => qw(decode_json);
+use autouse 'JSON::XS' => qw(decode_json($));
 
 =head1 NAME
 

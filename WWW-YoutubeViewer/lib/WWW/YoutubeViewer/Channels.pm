@@ -33,9 +33,31 @@ sub _make_channels_url {
 
 Return the YouTube channels associated with the specified category.
 
-=head2 channel_id_info($category_id)
+=head2 channels_info($channel_id)
 
 Return information for the comma-separated list of the YouTube channel ID(s).
+
+=head1 Channel details
+
+For all functions, C<$channels->{results}{items}> contains:
+
+    [
+       {
+        id => "....",
+        kind => "youtube#channel",
+            snippet => {
+            description => "...",
+            publishedAt => "2010-06-24T23:15:37.000Z",
+            thumbnails => {
+                default => { url => "..." },
+                high    => { url => "..." },
+                medium  => { url => "..." },
+            },
+            title => "...",
+          },  # end of snippet
+       },
+        ...
+    ];
 
 =cut
 
@@ -43,7 +65,16 @@ Return information for the comma-separated list of the YouTube channel ID(s).
     no strict 'refs';
 
     foreach
-      my $info ({key => 'categoryId', name => 'channels_from_guide_category'}, {key => 'id', name => 'channels_info'},)
+      my $info (
+        {
+            key => 'categoryId',
+            name => 'channels_from_guide_category',
+        },
+        {
+            key => 'id',
+            name => 'channels_info',
+        },
+      )
     {
         *{__PACKAGE__ . '::' . $info->{name}} = sub {
             my ($self, $id) = @_;
@@ -70,6 +101,67 @@ sub channels_my_subscribers {
     $self->get_access_token() // return;
     return $self->_get_results($self->_make_channels_url(mySubscribers => 'true'));
 }
+
+=head2 channels_contentDetails($channelID)
+
+  {
+    items    => [
+                  {
+                    contentDetails => {
+                      relatedPlaylists => {
+                        likes   => "LLwiIs5V6-zX8xaYgwhRhsHQ",
+                        uploads => "UUwiIs5V6-zX8xaYgwhRhsHQ",
+                      },
+                    },
+                    etag => "...",
+                    id => "UCwiIs5V6-zX8xaYgwhRhsHQ",
+                    kind => "youtube#channel",
+                  },
+                ],
+    kind     => "youtube#channelListResponse",
+    pageInfo => { resultsPerPage => 1, totalResults => 1 },
+  },
+
+=head2 channels_statistics($channelID);
+
+  {
+    items    => [
+                  {
+                    etag => "...",
+                    id => "UCwiIs5V6-zX8xaYgwhRhsHQ",
+                    kind => "youtube#channel",
+                    statistics => {
+                      commentCount    => 14,
+                      subscriberCount => 313823,
+                      videoCount      => 474,
+                      viewCount       => 1654024,
+                    },
+                  },
+                ],
+    kind     => "youtube#channelListResponse",
+    pageInfo => { resultsPerPage => 1, totalResults => 1 },
+  },
+
+=head2 channels_topicDetails($channelID)
+
+    items    => [
+                  {
+                    etag => "...",
+                    id => "UCwiIs5V6-zX8xaYgwhRhsHQ",
+                    kind => "youtube#channel",
+                    topicDetails => {
+                      topicIds => [
+                        "/m/027lnzs",
+                        "/m/0cp07v2",
+                            ...
+                      ],
+                    },
+                  },
+                ],
+    kind     => "youtube#channelListResponse",
+    pageInfo => { resultsPerPage => 1, totalResults => 1 },
+
+=cut
 
 =head1 AUTHOR
 

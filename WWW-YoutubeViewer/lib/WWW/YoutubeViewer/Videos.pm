@@ -41,11 +41,6 @@ sub videos_id_info {
     return $self->_get_results($self->_make_videos_url(id => $id));
 }
 
-=head2  videos_id($video_ID)
-
-...
-
-=cut
 
 {
     no strict 'refs';
@@ -56,6 +51,116 @@ sub videos_id_info {
         };
     }
 }
+
+=head2 Return details
+
+Each function returns a HASH ref, with a key called 'results', and another key, called 'url'.
+
+The 'url' key contains a string, which is the URL for the retrieved content.
+
+The 'results' key contains another HASH ref with the keys 'etag', 'items' and 'kind'.
+From the 'results' key, only the 'items' are relevant to us. This key contains an ARRAY ref,
+with a HASH ref for each result. An example of the item array's content are showed below.
+
+=over 4
+
+=item videos_contentDetails($videoID)
+
+    items => [
+               {
+                 contentDetails => {
+                   caption         => "false",
+                   definition      => "sd",
+                   dimension       => "2d",
+                   duration        => "PT1H20M10S",
+                   licensedContent => bless(do{\(my $o = 0)}, "JSON::XS::Boolean"),
+                 },
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/KU_bqVk91zBQGXrMtEDZgkQMkhU\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+               },
+
+
+=item videos_id($videoID)
+
+    items => [
+               {
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/bvAWXfDY4QPsx_UgtmMPFcxPLQc\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+               },
+             ],
+
+
+=item videos_player($videoID)
+
+    items => [
+               {
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/nr03GopgH8bb755ppx5BA_1VsF8\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+                 player => {
+                   embedHtml => "<iframe type='text/html' src='http://www.youtube.com/embed/f6df3s3x3zo' width='640' height='360' frameborder='0' allowfullscreen='true'/>",
+                 },
+               },
+             ],
+
+
+=item videos_statistics($videoID)
+
+    items => [
+               {
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/j01_qxKqxc3BMrFBbX2eiPWkAmo\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+                 statistics => {
+                   commentCount  => 2,
+                   dislikeCount  => 1,
+                   favoriteCount => 0,
+                   likeCount     => 5,
+                   viewCount     => 174,
+                 },
+               },
+             ],
+
+=back
+
+=cut
+
+#pp $yv_obj->videos_status('f6df3s3x3zo');
+
+=item videos_status($videoID)
+
+    items => [
+               {
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/jaa690eVtSvHTYRSSPD3mc1mlIY\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+                 status => {
+                   embeddable    => bless(do{\(my $o = 1)}, "JSON::XS::Boolean"),
+                   license       => "youtube",
+                   privacyStatus => "public",
+                   uploadStatus  => "processed",
+                 },
+               },
+             ],
+
+=cut
+
+#pp $yv_obj->videos_topicDetails('f6df3s3x3zo');
+
+=item video_topicDetails
+
+    items => [
+               {
+                 etag => "\"5cYuq_ImPkYn_h2RKDdX8DHvM2g/XnxCuOGwiR8MNhH-iHNxHB-ROWM\"",
+                 id => "f6df3s3x3zo",
+                 kind => "youtube#video",
+                 topicDetails => { topicIds => ["/m/0126n", "/m/0jpv", "/m/07h44"] },
+               },
+             ],
+
+=cut
 
 =head1 AUTHOR
 
