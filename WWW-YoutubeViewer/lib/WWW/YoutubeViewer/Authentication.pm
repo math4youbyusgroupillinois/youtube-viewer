@@ -4,7 +4,7 @@ use strict;
 
 =head1 NAME
 
-WWW::YoutubeViewer::Authentication - ...
+WWW::YoutubeViewer::Authentication - OAuth login support.
 
 =head1 VERSION
 
@@ -16,25 +16,85 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use WWW::YoutubeViewer::Authentication;
-    my $obj = WWW::YoutubeViewer::Authentication->new(%opts);
+    use WWW::YoutubeViewer;
+    my $hash_ref = WWW::YoutubeViewer->oauth_login($code);
 
 =head1 SUBROUTINES/METHODS
 
 =cut
 
-=head2 oauth_login()
+sub _get_token_oauth_url {
+    my ($self) = @_;
+    return $self->get_oauth_url() . 'token';
+}
 
-...
+=head2 oauth_refresh_token()
+
+Refresh the access_token using the refresh_token. Returns a JSON string or undef.
+
+=cut
+
+sub oauth_refresh_token {
+    my ($self) = @_;
+
+    my $json_data = $self->lwp_post(
+                                    $self->_get_token_oauth_url(),
+                                    [Content       => $self->get_www_content_type,
+                                     client_id     => $self->get_client_id() // return,
+                                     client_secret => $self->get_client_secret() // return,
+                                     refresh_token => $self->get_refresh_token() // return,
+                                     grant_type    => 'refresh_token',
+                                    ]
+                                   );
+
+    return $self->parse_json_string($json_data);
+}
+
+=head2 get_accounts_oauth_url()
+
+Creates an OAuth URL with the 'code' response type. (Google's authorization server)
+
+=cut
+
+sub get_accounts_oauth_url {
+    my ($self) = @_;
+
+    my $url = $self->_concat_args(
+                                  ($self->get_oauth_url() . 'auth'),
+                                  response_type => 'code',
+                                  client_id     => $self->get_client_id() // return,
+                                  redirect_uri  => $self->get_redirect_uri() // return,
+                                  scope         => 'https://www.googleapis.com/auth/youtube',
+                                  access_type   => 'offline',
+                                 );
+    return $url;
+}
+
+=head2 oauth_login($code)
+
+Returns a HASH ref with the access_token, refresh_token and some other info.
+
+The $code can be obtained by going to the URL returned by the C<get_accounts_oauth_url()> method.
 
 =cut
 
 sub oauth_login {
-    my ($self) = @_;
+    my ($self, $code) = @_;
 
+    length($code) < 20 and return;
 
+    my $json_data = $self->lwp_post(
+                                    $self->_get_token_oauth_url(),
+                                    [Content       => $self->get_www_content_type,
+                                     client_id     => $self->get_client_id() // return,
+                                     client_secret => $self->get_client_secret() // return,
+                                     redirect_uri  => $self->get_redirect_uri() // return,
+                                     grant_type    => 'authorization_code',
+                                     code          => $code,
+                                    ]
+                                   );
 
-    return;
+    return $self->parse_json_string($json_data);
 }
 
 =head1 AUTHOR

@@ -1,10 +1,10 @@
-package WWW::YoutubeViewer::Subscriptions;
+package WWW::YoutubeViewer::Activities;
 
 use strict;
 
 =head1 NAME
 
-WWW::YoutubeViewer::Subscriptions - Subscriptions handler.
+WWW::YoutubeViewer::Activities - ...
 
 =head1 VERSION
 
@@ -16,60 +16,23 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use WWW::YoutubeViewer;
-    my $obj = WWW::YoutubeViewer->new(%opts);
-    my $videos = $obj->subscriptions_from_channelID($channel_id);
+    use WWW::YoutubeViewer::Activities;
+    my $obj = WWW::YoutubeViewer::Activities->new(%opts);
 
 =head1 SUBROUTINES/METHODS
 
 =cut
 
-sub _make_subscriptions_url {
-    my ($self, %opts) = @_;
-    return $self->_make_feed_url('subscriptions', %opts,);
-}
+=head2 activities_for_channelID()
 
-=head2 subscriptions_mine(%args)
-
-Retrieve a feed of the authenticated user's subscriptions.
+...
 
 =cut
 
-sub subscriptions_mine {
-    my ($self, %args) = @_;
-    $self->get_access_token() // return;
-    return $self->_get_results($self->_make_subscriptions_url(mine => 'true', %args));
-}
+sub activities_for_channelID {
+    my ($self) = @_;
 
-=head2 subscriptions_from_channelID(%args)
-
-Get subscriptions for the specified channel ID.
-
-=head2 subscriptions_info($subscriptionID, %args)
-
-Get details for the comma-separated subscriptionID(s).
-
-=head3 HASH '%args' supports the following pairs:
-
-    %args = (
-        part         => {contentDetails,id,snippet},
-        forChannelId => $channelID,
-        maxResults   => [0-50],
-        order        => {alphabetical, relevance, unread},
-        pageToken    => {$nextPageToken, $prevPageToken},
-    );
-
-=cut
-
-{
-    no strict 'refs';
-    foreach my $method ({key => 'id', name => 'subscriptions_info'},
-                        {key => 'channelId', name => 'subscriptions_from_channelID'},) {
-        *{__PACKAGE__ . '::' . $method->{name}} = sub {
-            my ($self, $id, %args) = @_;
-            return $self->_get_results($self->_make_subscriptions_url($method->{key} => $id, %args));
-        };
-    }
+    return;
 }
 
 =head1 AUTHOR
@@ -81,7 +44,7 @@ Suteu "Trizen" Daniel, C<< <trizenx at gmail.com> >>
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc WWW::YoutubeViewer::Subscriptions
+    perldoc WWW::YoutubeViewer::Activities
 
 
 =head1 LICENSE AND COPYRIGHT
@@ -127,4 +90,4 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-1;    # End of WWW::YoutubeViewer::Subscriptions
+1;    # End of WWW::YoutubeViewer::Activities

@@ -33,22 +33,30 @@ sub _make_channels_url {
 
 Return the YouTube channels associated with the specified category.
 
-=cut
-
-sub channels_from_categoryID {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_channels_url(categoryId => $id));
-}
-
 =head2 channel_id_info($category_id)
 
 Return information for the comma-separated list of the YouTube channel ID(s).
 
 =cut
 
-sub channels_id_info {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_channels_url(id => $id));
+{
+    no strict 'refs';
+
+    foreach
+      my $info ({key => 'categoryId', name => 'channels_from_guide_category'}, {key => 'id', name => 'channels_info'},)
+    {
+        *{__PACKAGE__ . '::' . $info->{name}} = sub {
+            my ($self, $id) = @_;
+            return $self->_get_results($self->_make_channels_url($info->{key} => $id));
+        };
+    }
+
+    foreach my $part (qw(id contentDetails statistics topicDetails)) {
+        *{__PACKAGE__ . '::' . 'channels_' . $part} = sub {
+            my ($self, $id) = @_;
+            return $self->_get_results($self->_make_channels_url(id => $id, part => $part));
+        };
+    }
 }
 
 =head2 channels_my_subscribers()
@@ -59,6 +67,7 @@ Retrieve a list of channels that subscribed to the authenticated user's channel.
 
 sub channels_my_subscribers {
     my ($self) = @_;
+    $self->get_access_token() // return;
     return $self->_get_results($self->_make_channels_url(mySubscribers => 'true'));
 }
 

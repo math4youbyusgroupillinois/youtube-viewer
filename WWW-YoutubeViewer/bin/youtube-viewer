@@ -435,10 +435,37 @@ use Data::Dump qw(pp);
 #pp $yv_obj->videos_from_categoryID('20');  # ok (cat info)
 #pp $yv_obj->video_categories('US');    # ok -- video categories
 
+#pp $yv_obj->guide_categories('US');
+
+# guide category ID: GCVGVjaA
+# title => "Tech"
+
+pp $yv_obj->channels_from_guide_category('GCVGVjaA');
+
+=channel info
+
+  id => "....",
+  kind => "youtube#channel",
+        snippet => {
+          description => "...",
+          publishedAt => "2010-06-24T23:15:37.000Z",
+          thumbnails => {
+            default => { url => "..." },
+            high    => { url => "..." },
+            medium  => { url => "..." },
+          },
+          title => "....",
+
+=cut
+
 #http://www.youtube.com/watch?v=f6df3s3x3zo
 
 #pp $yv_obj->video_id_info('f6df3s3x3zo');
-pp $yv_obj->video_id_statistics('f6df3s3x3zo');     # works
+#pp $yv_obj->video_id_statistics('f6df3s3x3zo');     # works
+#pp $yv_obj->videos_topicDetails('f6df3s3x3zo');
+
+# =>> TOPIC DETAILS:
+#  topicDetails => { topicIds => ["/m/0126n", "/m/0jpv", "/m/07h44"] },
 
 #pp $yv_obj->subscriptions_from_channelID('UCcwUNX2tWntqwqy_SSnkm9g');   # ok - get video subscriptions for channelID
 
@@ -1447,11 +1474,7 @@ sub authenticate {
 INFO
 
     my $code = $term->readline(colored(q{Code: }, 'bold')) || return;
-
-    my $json_data = $yv_obj->oauth_login($code) // return;
-
-    say $json_data if $yv_obj->get_debug;
-    my $info = $yv_utils->basic_json_parser($json_data);
+    my $info = $yv_utils->oauth_login($code);
 
     if (defined $info->{access_token}) {
 
@@ -2578,12 +2601,17 @@ sub download_video {
         }
     }
     elsif ($opt{download_and_play}) {
-        system $opt{mplayer}, $title;
 
+        update_mplayer_arguments();
+        my @mplayer_line =
+          ($opt{mplayer}, get_quotewords(qr/\s+/, 1, join(" ", grep { defined && /\S/ } values %MPLAYER)));
+
+        say "@mplayer_line" if $yv_obj->get_debug;
+
+        system @mplayer_line, $title;
         if ($? == 0 and $opt{remove_played_file}) {
             unlink $title;
         }
-
     }
 
     return 1;

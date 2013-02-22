@@ -29,26 +29,32 @@ sub _make_videos_url {
     return $self->_make_feed_url('videos', %opts,);
 }
 
-=head2 video_id_info($video_id)
+=head2 videos_id_info($video_ID)
+
+Get info about a videoID, such as: channelId,
+title, description, tags, and categoryId.
+
+=cut
+
+sub videos_id_info {
+    my ($self, $id) = @_;
+    return $self->_get_results($self->_make_videos_url(id => $id));
+}
+
+=head2  videos_id($video_ID)
 
 ...
 
 =cut
 
-sub video_id_info {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_videos_url(id => $id));
-}
-
-=head2 video_id_statistics($video_id)
-
-Get statistics for videoID.
-
-=cut
-
-sub video_id_statistics {
-    my ($self, $id) = @_;
-    return $self->_get_results($self->_make_videos_url(id => $id, part => 'statistics'));
+{
+    no strict 'refs';
+    foreach my $part (qw(id contentDetails player statistics status topicDetails)) {
+        *{__PACKAGE__ . '::' . 'videos_' . $part} = sub {
+            my ($self, $id) = @_;
+            return $self->_get_results($self->_make_videos_url(id => $id, part => $part));
+        };
+    }
 }
 
 =head1 AUTHOR

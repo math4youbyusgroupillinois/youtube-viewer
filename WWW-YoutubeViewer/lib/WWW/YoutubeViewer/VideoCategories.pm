@@ -31,12 +31,11 @@ sub _make_videoCategories_url {
         $opts{regionCode} //= $self->get_regionCode;
     }
 
-    return
-      $self->_make_feed_url(
-                            'videoCategories',
-                            hl => $self->get_hl,
-                            %opts,
-                           );
+    $self->_make_feed_url(
+                          'videoCategories',
+                          hl => $self->get_hl,
+                          %opts,
+                         );
 }
 
 =head2 video_categories(;$region_id)

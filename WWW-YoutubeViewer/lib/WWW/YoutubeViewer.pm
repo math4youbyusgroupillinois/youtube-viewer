@@ -14,6 +14,7 @@ use parent qw(
   WWW::YoutubeViewer::ParseJSON
   WWW::YoutubeViewer::Subscriptions
   WWW::YoutubeViewer::PlaylistItems
+  WWW::YoutubeViewer::Authentication
   WWW::YoutubeViewer::VideoCategories
   WWW::YoutubeViewer::GuideCategories
   );
@@ -66,8 +67,8 @@ my %valid_options = (
     hl         => {valid => [qr/^[a-z]{2}-[A-Z]{2}\z/], default => undef},
 
     maxResults      => {valid => [1 .. 50],                             default => 2},
+    regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => 'US'},
     topicId         => {valid => [qr/^./],                              default => undef},
-    regionCode      => {valid => [qr/^[A-Z]{2}\z/],                     default => undef},
     order           => {valid => [qw(date rating relevance viewCount)], default => undef},
     publishedAfter  => {valid => [qr/^\d+/],                            default => undef},
     publishedBefore => {valid => [qr/^\d+/],                            default => undef},
@@ -318,98 +319,10 @@ sub set_lwp_useragent {
                                          agent         => $self->get_lwp_agent,
                                         );
 
-    $self->{lwp}->ssl_opts(Timeout => 1);
+    $self->{lwp}->ssl_opts(Timeout => 3);
     push @{$self->{lwp}->requests_redirectable}, 'POST';
     $self->{lwp}->proxy('http', $self->get_http_proxy) if (defined($self->get_http_proxy));
     return $self->{lwp};
-}
-
-sub _get_token_oauth_url {
-    my ($self) = @_;
-    return $self->get_oauth_url() . 'token';
-}
-
-=head2 get_accounts_oauth_url()
-
-Creates an OAuth URL with the 'code' response type. (Google's authorization server)
-
-=cut
-
-sub get_accounts_oauth_url {
-    my ($self) = @_;
-
-    my $url = $self->_concat_args(
-                                  ($self->get_oauth_url() . 'auth'),
-                                  response_type => 'code',
-                                  client_id     => $self->get_client_id() // return,
-                                  redirect_uri  => $self->get_redirect_uri() // return,
-                                  scope         => 'https://www.googleapis.com/auth/youtube',
-                                  access_type   => 'offline',
-                                 );
-    return $url;
-}
-
-=head2 oauth_refresh_token()
-
-Refresh the access_token using the refresh_token. Returns a JSON string or undef.
-
-=cut
-
-sub oauth_refresh_token {
-    my ($self) = @_;
-
-    return
-      $self->lwp_post(
-                      $self->_get_token_oauth_url(),
-                      [Content       => $self->get_www_content_type,
-                       client_id     => $self->get_client_id() // return,
-                       client_secret => $self->get_client_secret() // return,
-                       refresh_token => $self->get_refresh_token() // return,
-                       grant_type    => 'refresh_token',
-                      ]
-                     );
-}
-
-=head2 oauth_login($code)
-
-Returns a JSON string with the access_token, refresh_token and some other info.
-
-The $code can be obtained by going to the URL returned by the C<get_accounts_oauth_url()> method.
-
-=cut
-
-sub oauth_login {
-    my ($self, $code) = @_;
-
-    length($code) < 20 and return;
-
-    return
-      $self->lwp_post(
-                      $self->_get_token_oauth_url(),
-                      [Content       => $self->get_www_content_type,
-                       client_id     => $self->get_client_id() // return,
-                       client_secret => $self->get_client_secret() // return,
-                       redirect_uri  => $self->get_redirect_uri() // return,
-                       grant_type    => 'authorization_code',
-                       code          => $code,
-                      ]
-                     );
-}
-
-=head2 prepare_key()
-
-Returns a string, used as header, with the developer's key.
-
-=cut
-
-sub prepare_key {
-    my ($self) = @_;
-
-    if (defined(my $key = $self->get_key)) {
-        return "key=$key";
-    }
-
-    return;
 }
 
 =head2 prepare_access_token()
@@ -432,16 +345,9 @@ sub _get_lwp_header {
     my ($self) = @_;
 
     my %lwp_header;
-    if (defined $self->get_key) {
-
-        #$lwp_header{'X-GData-Key'} = $self->prepare_key;
-    }
-
     if (defined $self->get_access_token) {
         $lwp_header{'Authorization'} = $self->prepare_access_token;
     }
-
-    #$lwp_header{'X-JavaScript-User-Agent'} = 'Google APIs Explorer';
 
     return %lwp_header;
 }
@@ -465,10 +371,10 @@ sub lwp_get {
         my $status = $response->status_line;
 
         if ($status =~ /^401 / and defined($self->get_refresh_token)) {
-            if (defined(my $json = $self->oauth_refresh_token())) {
-                if ($json =~ m{^\h*"access_token"\h*:\h*"(.{10,}?)"}m) {
+            if (defined(my $refresh_token = $self->oauth_refresh_token())) {
+                if (defined $refresh_token->{access_token}) {
 
-                    $self->set_access_token($1);
+                    $self->set_access_token($refresh_token->{access_token});
 
                     # Don't be tempted to use recursion here, because bad things will happen!
                     my $new_resp = $self->{lwp}->get($url, $self->_get_lwp_header);
@@ -549,20 +455,6 @@ sub lwp_mirror {
     }
 
     return;
-}
-
-sub _get_thumbnail_from_gdata {
-    my ($self, $gdata) = @_;
-    return (
-            ref($gdata->{'media:group'}) eq 'ARRAY' && exists $gdata->{'media:group'}[0]{'-url'}
-            ? $gdata->{'media:group'}[0]{'-url'}
-            : ref($gdata->{'media:group'}) eq 'HASH' ? ref($gdata->{'media:group'}{'media:thumbnail'}) eq 'ARRAY'
-                  ? $gdata->{'media:group'}{'media:thumbnail'}[0]{'-url'}
-                  : $gdata->{'media:group'}{'media:thumbnail'}{'-url'}
-              : ref $gdata->{'media:group'} eq 'ARRAY' && ref $gdata->{'media:group'}[0]{'media:thumbnail'} eq 'ARRAY'
-            ? $gdata->{'media:group'}[0]{'media:thumbnail'}[0]{'-url'}
-            : q{}
-           );
 }
 
 sub _get_results {
