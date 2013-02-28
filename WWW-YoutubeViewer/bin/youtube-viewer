@@ -429,6 +429,11 @@ use Data::Dump qw(pp);
 # ChannelID: UCWf2ZlNsCGDS89VBF_awNvA
 # my channel ID: UCcwUNX2tWntqwqy_SSnkm9g
 
+#pp $yv_obj->search_videos('google');
+#my $uri = 'https://www.googleapis.com/youtube/v3/search?prettyPrint=false&part=snippet&maxResults=13&key=AIzaSyA2PQakgMYbX3U3imqplLMhpfM8mzEn22Q&q=google&type=video';
+
+#pp $yv_obj->next_page('https://www.googleapis.com/youtube/v3/search?prettyPrint=false&part=snippet&maxResults=13&key=AIzaSyA2PQakgMYbX3U3imqplLMhpfM8mzEn22Q&q=youtube&type=video','CFpQAA');
+
 #pp $yv_obj->search_videos(['xxswampxx']);
 #pp $yv_obj->channels_my_subscribers();
 
@@ -2756,6 +2761,17 @@ sub print_videos {
 
     use Data::Dump qw(pp);
     pp $results;
+
+    # 1  => CAAQAA
+    # 2  => CAEQAA
+    # 3  => CAIQAA
+    # 4  => CAMQAA
+    # 5  => CAQQAA
+    # 6  => CAUQAA
+    # 7  => CAYQAA
+    # 17 => CBEQAA
+    # 20 => CBQQAA
+    # 21 => CBUQAA
 
 =gdata response
 

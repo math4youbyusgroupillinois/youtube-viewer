@@ -133,11 +133,6 @@ with a HASH ref for each result. An example of the item array's content are show
                },
              ],
 
-=back
-
-=cut
-
-#pp $yv_obj->videos_status('f6df3s3x3zo');
 
 =item videos_status($videoID)
 
@@ -155,11 +150,8 @@ with a HASH ref for each result. An example of the item array's content are show
                },
              ],
 
-=cut
 
-#pp $yv_obj->videos_topicDetails('f6df3s3x3zo');
-
-=item video_topicDetails
+=item video_topicDetails($videoID)
 
     items => [
                {
@@ -169,6 +161,8 @@ with a HASH ref for each result. An example of the item array's content are show
                  topicDetails => { topicIds => ["/m/0126n", "/m/0jpv", "/m/07h44"] },
                },
              ],
+
+=back
 
 =cut
 
