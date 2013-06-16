@@ -31,7 +31,7 @@ sub _make_subscriptions_url {
 
 =head2 subscribe_channel($username)
 
-Subscribe to a user's channel.
+Subscribe to an user's channel.
 
 =cut
 

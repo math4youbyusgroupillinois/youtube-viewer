@@ -1,6 +1,10 @@
 #!perl -T
+use 5.006;
+use strict;
+use warnings FATAL => 'all';
+use Test::More;
 
-use Test::More tests => 1;
+plan tests => 1;
 
 BEGIN {
     use_ok( 'WWW::YoutubeViewer' ) || print "Bail out!\n";
